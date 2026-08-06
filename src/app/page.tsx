@@ -1,8 +1,28 @@
 import ImageUploader from "@/components/ImageUploader";
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "CleanPic",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Any",
+  url: "https://clean-pic.vercel.app",
+  description:
+    "Ajuste imagens em lote gratuitamente: corte espaços vazios, redimensione, troque a cor, remova o fundo e converta JPEG, PNG, WebP, GIF ou AVIF em PNG, SVG ou ICO.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+};
+
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-stone-950 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <main className="flex flex-col flex-1 gap-8 px-6 py-16 w-full max-w-5xl">
         <div className="flex flex-col items-center gap-2">
           <img

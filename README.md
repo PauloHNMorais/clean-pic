@@ -2,6 +2,8 @@
 
 # CleanPic
 
+**Live app:** [clean-pic.vercel.app](https://clean-pic.vercel.app)
+
 A web tool for batch-adjusting images: upload JPEG, PNG, WebP, GIF, or AVIF, then trim empty space, resize, recolor, remove the background, and export as PNG, SVG, or ICO — with global or per-image overrides — then download everything as a `.zip`.
 
 Full requirements and business rules in [APP.md](APP.md). Technical decisions and project conventions in [CLAUDE.md](CLAUDE.md).

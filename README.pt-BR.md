@@ -2,6 +2,8 @@ _[Read in English](README.md)_
 
 # CleanPic
 
+**App publicado:** [clean-pic.vercel.app](https://clean-pic.vercel.app)
+
 Ferramenta web para ajustar imagens em lote: envie JPEG, PNG, WebP, GIF ou AVIF, depois corte espaços vazios, redimensione, troque a cor, remova o fundo e exporte como PNG, SVG ou ICO — com ajuste global ou individual por imagem — e baixe tudo em um `.zip`.
 
 Requisitos e regras de negócio completos em [APP.md](APP.md). Decisões técnicas e convenções do projeto em [CLAUDE.md](CLAUDE.md).
