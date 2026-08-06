@@ -46,6 +46,20 @@ export default function Home() {
         </div>
         <ImageUploader />
       </main>
+      <footer className="flex flex-col items-center gap-1 px-6 py-8 w-full text-zinc-500 dark:text-zinc-500 text-sm text-center">
+        <p>CleanPic — processamento de imagens em lote</p>
+        <p>
+          Desenvolvido por{" "}
+          <a
+            href="https://github.com/PauloHNMorais"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            Paulo Morais
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
