@@ -1,0 +1,69 @@
+# PNG Tool
+
+Ferramenta web para ajuste em lote de imagens PNG (converter para SVG, cortar espaços vazios, redimensionar) com download em zip. Ver [APP.md](APP.md) para os requisitos completos.
+
+## Stack
+
+- **Next.js** (App Router) — front-end e back-end na mesma aplicação
+- **sharp** — redimensionamento e corte de espaços vazios/transparentes (trim)
+- **potrace** (ou equivalente) — vetorização PNG → SVG (traçado de contornos; funciona bem em imagens tipo ícone/silhueta com poucas cores, não em fotos/gradientes)
+- **archiver** ou **jszip** — geração do arquivo zip para download
+- **react-dropzone** — upload múltiplo com drag-and-drop
+- **Tailwind CSS** — estilização
+
+## Fases do projeto
+
+1. **Upload e listagem** — upload múltiplo (1–50 imagens), validação de tipo/quantidade, preview em lista/grid
+2. **Configuração de ajustes** — UI para marcar as 3 opções (SVG, trim, resize), com alternância entre modo global e ajuste individual por imagem
+3. **Processamento no back-end** — rota Next.js que recebe imagens + configs, aplica trim/resize/conversão PNG→SVG e já devolve o `.zip` (uma rota HTTP só tem uma resposta; zipar ali é o jeito natural de retornar múltiplos arquivos processados)
+4. **Empacotamento e download** — wiring do front-end: botão que monta o `FormData`, chama a rota, aciona o download do `.zip` no navegador e exibe erros (gerais ou por imagem)
+5. **Validações e regras de negócio** — limite de 1–50 imagens, tratamento de erros (formato inválido, falha na conversão SVG, etc.)
+6. **Polimento** — feedback de progresso durante processamento em lote, tratamento de casos extremos (imagem sem transparência para o trim, dimensões inválidas no resize)
+
+## Conversão PNG → SVG
+
+Escopo assumido (ver [APP.md](APP.md)): ícones de cor única em estilo outline sobre fundo transparente. Fotos e imagens com múltiplas cores/gradientes não têm boa fidelidade com essa abordagem e ficam fora de escopo.
+
+Abordagem:
+- **Binarizar pelo canal alfa**, não por luminância — como a imagem é de cor única com fundo transparente, o alfa é uma máscara mais confiável que threshold de cor
+- **potrace** para o traçado de contorno; ajustar `alphamax` para suavizar curvas e evitar serrilhado causado por anti-aliasing nas bordas do PNG original
+- **Formas com buraco** (outline vazado, ex. um círculo vazado vira um anel) dependem da regra de preenchimento even-odd do potrace — validar visualmente que a topologia (buracos) é preservada
+- Potrace traça a **área preenchida**, não gera `stroke-width` — um traço de N px de espessura vira um contorno duplo (borda externa + interna). Aceitável como padrão; só considerar extração de esqueleto/stroke se a fidelidade do traço não for satisfatória
+- Resolução baixa de origem (ícones de 16–32px) tende a gerar vetor "blocado" — documentar como limitação conhecida, não tentar compensar via lógica extra
+- Antes de integrar a lib no pipeline, validar com um teste manual (CLI do potrace) em 5–10 PNGs reais representativos (formas simples, com buraco, traço fino, traço grosso) para confirmar que o resultado é aceitável
+
+Implementado em `src/lib/image/svg.ts`: lê o PNG via `sharp`, gera um bitmap binário (preto/branco) a partir do canal alfa, extrai a cor de preenchimento do primeiro pixel opaco encontrado (em vez de assumir preto) e passa esse bitmap pro `potrace.trace`. Quando `resize` também está marcado, o SVG resultante recebe `width`/`height` sobrescritos (mantendo o `viewBox` original) em vez de rasterizar-redimensionar-vetorizar — como é vetor, isso escala sem perda.
+
+### Cor de saída customizável (`outputColor`)
+
+Mantém o modelo de cor única (não é segmentação multi-cor — isso foi avaliado e descartado por enquanto por exigir clustering de cor, múltiplas passadas de potrace por imagem e um passo extra de detecção sincronizado entre cliente e servidor; ver decisão registrada na conversa). `AdjustmentConfig.outputColor: string | null` — quando definido, sobrescreve a cor de saída em vez de usar a original:
+- **SVG**: `convertToSvg` recebe `colorOverride` e usa em vez da cor auto-detectada (a detecção ainda roda, só é ignorada quando há override — sem ganho real em pular, mesmo loop de varredura do alfa).
+- **PNG**: `src/lib/image/recolor.ts` (`recolorImage`) substitui o RGB de todo pixel pela cor escolhida, preservando o alfa original de cada pixel (então bordas com anti-aliasing continuam suaves, só muda o matiz).
+- Validado em `isValidAdjustmentConfig` via regex de hex (`#rrggbb`).
+
+## Notas técnicas
+
+- **`serverExternalPackages`** (`next.config.ts`): `potrace` e `jimp` (dependência interna do potrace) precisam estar nessa lista. Sem isso, o bundler do Next tenta empacotar o pacote e gera um erro em runtime (`Right-hand side of 'instanceof' is not callable`) por causa de checks internos de classe que quebram quando bundlados. `sharp` já é externalizado automaticamente pelo Next, não precisa ser adicionado.
+- **Vulnerabilidades transitivas conhecidas** (`npm audit`): `potrace` depende de uma versão antiga do `jimp`, que por sua vez depende de `file-type` (loop infinito em parser ASF malformado) e `phin` (vazamento de headers em redirect). Sem correção disponível upstream. Risco aceito: nosso código nunca passa URLs pro potrace/jimp (só buffers PNG gerados internamente por nós), então o vetor do `phin` não é alcançável; o bug do `file-type` é específico do formato ASF (áudio), não PNG.
+- **Desambiguação de nomes no zip** (`route.ts`, função `uniqueName`): usar `usedNames.size` como sufixo de retry (versão antiga) causa loop infinito quando o nome gerado colide com um arquivo cujo nome original já é literalmente `base-N.ext` — trava a requisição para sempre. Corrigido com um contador dedicado que incrementa a cada tentativa, independente do tamanho do set. Reproduzido e verificado com os arquivos `logo-2.png`, `logo.png`, `logo.png` (nessa ordem).
+- **Trim sem transparência**: testado empiricamente — `sharp().trim()` em uma imagem totalmente transparente ou totalmente opaca/uniforme não lança erro, apenas não corta nada (no-op). Não precisa de tratamento especial.
+
+## Convenções de código
+
+- **TypeScript** em todo o projeto, sem `any` — tipar entradas/saídas das funções de processamento de imagem explicitamente
+- **App Router**: lógica de servidor em Route Handlers (`app/api/**/route.ts`); Server Components por padrão, `"use client"` só onde há estado/interação
+- **Processamento de imagem** isolado em módulos próprios (ex.: `lib/image/*`), sem lógica de UI misturada — cada operação (trim, resize, svg) é uma função pura testável independentemente
+- **Estado de configuração por imagem**: modelar como um único objeto de config "global" mais overrides individuais por imagem, evitando duplicar os três campos (svg/trim/resize) em cada item quando o valor é herdado do global
+- **Nomes em inglês** no código (variáveis, funções, componentes), comentários apenas quando o motivo não é óbvio pelo código
+- **Sem otimização prematura**: processar imagens sequencialmente antes de considerar paralelismo/streaming, a menos que o volume (até 50 imagens) mostre necessidade real
+- **Validação de entrada** apenas nas bordas do sistema (upload: tipo de arquivo, quantidade, dimensões do resize) — não validar internamente o que já foi garantido na entrada
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
