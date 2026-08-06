@@ -130,6 +130,7 @@ export default function AdjustmentControls({
               min={MIN_TOLERANCE}
               max={MAX_TOLERANCE}
               value={config.removeBackground.tolerance}
+              className="accent-primary"
               onChange={(e) =>
                 onChange({
                   ...config,
