@@ -5,7 +5,9 @@ import { processImage } from "@/lib/image/process";
 import {
   MAX_FILE_SIZE_BYTES,
   MAX_IMAGES,
+  MAX_TOTAL_UPLOAD_BYTES,
   MIN_IMAGES,
+  formatMaxTotalSize,
 } from "@/lib/image/validation";
 
 export const runtime = "nodejs";
@@ -75,6 +77,16 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json(
       {
         error: `Envie entre ${MIN_IMAGES} e ${MAX_IMAGES} imagens (recebido: ${files.length})`,
+      },
+      { status: 400 }
+    );
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+    return Response.json(
+      {
+        error: `Tamanho total dos arquivos excede o limite de ${formatMaxTotalSize()}`,
       },
       { status: 400 }
     );

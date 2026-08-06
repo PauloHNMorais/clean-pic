@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { type FileRejection, useDropzone } from "react-dropzone";
-import { MAX_IMAGES, validateNewFiles } from "@/lib/image/validation";
+import {
+  MAX_IMAGES,
+  MAX_TOTAL_UPLOAD_BYTES,
+  formatMaxTotalSize,
+  validateNewFiles,
+} from "@/lib/image/validation";
 import {
   AdjustmentConfig,
   DEFAULT_CONFIG,
@@ -44,10 +49,12 @@ export default function ImageUploader() {
 
   const onDrop = useCallback(
     (acceptedFiles: File[], dropzoneRejections: FileRejection[]) => {
-      const { accepted, rejected, limitExceededCount } = validateNewFiles(
-        acceptedFiles,
-        images.length
+      const currentTotalBytes = images.reduce(
+        (sum, image) => sum + image.file.size,
+        0
       );
+      const { accepted, rejected, limitExceededCount, totalSizeExceededCount } =
+        validateNewFiles(acceptedFiles, images.length, currentTotalBytes);
 
       const newImages: UploadedImage[] = accepted.map((file) => ({
         id: `${file.name}-${file.size}-${crypto.randomUUID()}`,
@@ -68,11 +75,16 @@ export default function ImageUploader() {
           `Limite de ${MAX_IMAGES} imagens atingido — ${limitExceededCount} arquivo(s) não foram adicionados`
         );
       }
+      if (totalSizeExceededCount > 0) {
+        newErrors.push(
+          `Limite total de upload (${formatMaxTotalSize()}) atingido — ${totalSizeExceededCount} arquivo(s) não foram adicionados`
+        );
+      }
 
       setImages((prev) => [...prev, ...newImages]);
       setErrors(newErrors);
     },
-    [images.length]
+    [images]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -231,7 +243,12 @@ export default function ImageUploader() {
 
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {images.length} / {MAX_IMAGES} imagens
+              {images.length} / {MAX_IMAGES} imagens ·{" "}
+              {(
+                images.reduce((sum, image) => sum + image.file.size, 0) /
+                (1024 * 1024)
+              ).toFixed(1)}{" "}
+              / {(MAX_TOTAL_UPLOAD_BYTES / (1024 * 1024)).toFixed(0)} MB
             </span>
             <button
               onClick={clearAll}

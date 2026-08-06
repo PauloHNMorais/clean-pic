@@ -21,5 +21,6 @@ PNG Any é uma ferramenta web pra ajustar imagens PNG
 
 - Deve deixar escolher entre 1 e 50 imagens
 - A conversão para SVG é voltada para ícones de cor única em estilo "outline" (contorno). Fotos, gradientes ou imagens com múltiplas cores não têm boa fidelidade nesse processo e ficam fora do escopo garantido
-- Cada arquivo tem limite de 20 MB (proteção contra uso excessivo de memória/CPU no processamento)
+- Cada arquivo tem limite de 1 MB (proteção contra uso excessivo de memória/CPU no processamento)
+- O lote inteiro (soma de todos os arquivos numa mesma requisição) tem limite de 4 MB — esse é o limite que realmente importa pra caber no corpo de requisição de 4,5 MB da Vercel gratuita; o limite por arquivo sozinho não garante isso quando há muitos arquivos pequenos
 - Largura e altura de redimensionamento devem ser números inteiros entre 1 e 10000 px
