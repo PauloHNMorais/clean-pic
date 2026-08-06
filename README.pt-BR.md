@@ -34,10 +34,11 @@ src/
       validation.ts         validação de upload (formato, quantidade, tamanho)
       trim.ts / resize.ts / recolor.ts / svg.ts / ico.ts / removeBackground.ts   operações de imagem (sharp/potrace)
       process.ts            orquestra as operações acima por imagem
+      *.test.ts              testes unitários, ao lado do código que testam
     uploadWithProgress.ts   upload via XHR com progresso real
 ```
 
-Cada operação de imagem é uma função pura e isolada em `lib/image/`, sem lógica de UI misturada.
+Cada operação de imagem é uma função pura e isolada em `lib/image/`, sem lógica de UI misturada, com um `*.test.ts` ao lado (rodar com `npm test`).
 
 ## Como rodar localmente
 
@@ -56,6 +57,7 @@ Outros comandos:
 npm run build   # build de produção
 npm run start   # roda o build de produção
 npm run lint    # eslint
+npm test        # testes unitários (vitest)
 npx tsc --noEmit  # checagem de tipos
 ```
 
