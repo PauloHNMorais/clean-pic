@@ -10,6 +10,7 @@ PNG Any é uma ferramenta web pra ajustar imagens PNG
   - Cortar espaços vazios em volta do PNG
   - Redimensionar (com altura e largura escolhidas)
   - Alterar a cor de saída (aplica em PNG e em SVG; mantém o modelo de cor única já usado hoje, apenas troca a cor pela escolhida em vez de manter a original)
+  - Remover fundo (por cor + tolerância — não é segmentação por IA, é indicado pra fundo sólido/quase sólido tipo still de produto, não recorta bem foto com fundo complexo). Detecta a cor de fundo automaticamente por padrão (a partir dos cantos da própria imagem), mas permite escolher a cor manualmente
 - O usuário faz download dos arquivos ajustados em formato zip
 
 # Requisitos Não Funcionais

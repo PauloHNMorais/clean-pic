@@ -1,9 +1,14 @@
 import {
   AdjustmentConfig,
+  DEFAULT_BACKGROUND_COLOR,
   DEFAULT_OUTPUT_COLOR,
   DEFAULT_RESIZE,
+  DEFAULT_TOLERANCE,
   MAX_DIMENSION,
+  MAX_TOLERANCE,
   MIN_DIMENSION,
+  MIN_TOLERANCE,
+  getRemoveBackgroundError,
   getResizeError,
 } from "@/lib/image/config";
 
@@ -20,6 +25,95 @@ export default function AdjustmentControls({
 }: AdjustmentControlsProps) {
   return (
     <div className="flex flex-col gap-2 text-sm">
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={config.removeBackground !== null}
+          onChange={(e) =>
+            onChange({
+              ...config,
+              removeBackground: e.target.checked
+                ? { color: null, tolerance: DEFAULT_TOLERANCE }
+                : null,
+            })
+          }
+        />
+        Remover fundo
+      </label>
+
+      {config.removeBackground && (
+        <div className="flex flex-col gap-2 pl-6">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={config.removeBackground.color === null}
+              onChange={(e) =>
+                onChange({
+                  ...config,
+                  removeBackground: {
+                    ...config.removeBackground!,
+                    color: e.target.checked ? null : DEFAULT_BACKGROUND_COLOR,
+                  },
+                })
+              }
+            />
+            Detectar cor automaticamente
+          </label>
+
+          {config.removeBackground.color !== null && (
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={config.removeBackground.color}
+                onChange={(e) =>
+                  onChange({
+                    ...config,
+                    removeBackground: {
+                      ...config.removeBackground!,
+                      color: e.target.value,
+                    },
+                  })
+                }
+                className="h-8 w-12 rounded border border-gray-300 dark:border-gray-700 bg-transparent"
+                id={`${idPrefix}-bg-color`}
+              />
+              <span className="text-xs text-gray-500">
+                {config.removeBackground.color}
+              </span>
+            </div>
+          )}
+
+          <label className="flex items-center gap-2">
+            Tolerância
+            <input
+              type="range"
+              min={MIN_TOLERANCE}
+              max={MAX_TOLERANCE}
+              value={config.removeBackground.tolerance}
+              onChange={(e) =>
+                onChange({
+                  ...config,
+                  removeBackground: {
+                    ...config.removeBackground!,
+                    tolerance: Number(e.target.value),
+                  },
+                })
+              }
+              id={`${idPrefix}-bg-tolerance`}
+            />
+            <span className="text-xs text-gray-500">
+              {config.removeBackground.tolerance}
+            </span>
+          </label>
+
+          {getRemoveBackgroundError(config.removeBackground) && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              {getRemoveBackgroundError(config.removeBackground)}
+            </p>
+          )}
+        </div>
+      )}
+
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

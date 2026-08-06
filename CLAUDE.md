@@ -41,6 +41,16 @@ Mantém o modelo de cor única (não é segmentação multi-cor — isso foi ava
 - **PNG**: `src/lib/image/recolor.ts` (`recolorImage`) substitui o RGB de todo pixel pela cor escolhida, preservando o alfa original de cada pixel (então bordas com anti-aliasing continuam suaves, só muda o matiz).
 - Validado em `isValidAdjustmentConfig` via regex de hex (`#rrggbb`).
 
+### Remoção de fundo por cor (`removeBackground`)
+
+Chroma key, não segmentação por IA — bom pra fundo sólido/quase sólido (still de produto), não pra foto com fundo complexo (ver avaliação registrada na conversa). Implementado em `src/lib/image/removeBackground.ts`, roda **antes do trim** no `process.ts` (senão o trim não teria o que cortar — ele depende da transparência recém-criada).
+
+- `AdjustmentConfig.removeBackground: { color: string | null; tolerance: number } | null`. `color: null` = detectar automaticamente a cada imagem (não dá pra fazer isso uma vez só no "global", porque cada imagem do lote pode ter uma cor de fundo diferente — por isso a detecção roda no servidor, por imagem, em vez de uma vez só no cliente)
+- **Detecção automática**: média dos 4 pixels de canto da imagem. Simples e previsível, mais robusto que 1 pixel só (evita ruído de anti-aliasing bem no canto), sem ir longe demais com histograma/moda da borda inteira
+- **Distância de cor**: `max(|Δr|, |Δg|, |Δb|)` (Chebyshev, não euclidiana) — mais barato e fácil de raciocinar sobre o threshold
+- **Sem corte binário**: usa uma faixa de transição (85%–100% do threshold de tolerância) onde o alfa é reduzido gradualmente em vez de zerado de uma vez — evita borda serrilhada, principalmente em foto. O alfa original de cada pixel é multiplicado pelo fator de remoção (não sobrescrito), preservando transparência pré-existente
+- **Composição com SVG**: funciona sem nenhum código extra — como a conversão SVG já lê o canal alfa (`flattenByAlpha`), o alfa criado pela remoção de fundo alimenta o traçado diretamente. Testado: fundo branco removido + trim + SVG produz o path certo com a cor do sujeito preservada
+
 ## Notas técnicas
 
 - **`serverExternalPackages`** (`next.config.ts`): `potrace` e `jimp` (dependência interna do potrace) precisam estar nessa lista. Sem isso, o bundler do Next tenta empacotar o pacote e gera um erro em runtime (`Right-hand side of 'instanceof' is not callable`) por causa de checks internos de classe que quebram quando bundlados. `sharp` já é externalizado automaticamente pelo Next, não precisa ser adicionado.

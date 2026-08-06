@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+*[Leia em português](README.pt-BR.md)*
 
-## Getting Started
+# PNG Any
 
-First, run the development server:
+A web tool for batch-adjusting PNGs: convert to SVG, trim empty space, resize, and recolor the output — with global or per-image overrides — then download everything as a `.zip`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Full requirements and business rules in [APP.md](APP.md). Technical decisions and project conventions in [CLAUDE.md](CLAUDE.md).
+
+## Stack
+
+- [Next.js](https://nextjs.org) (App Router) — front-end and back-end in the same app
+- [sharp](https://sharp.pixelplumbing.com) — PNG trim, resize, and recoloring
+- [potrace](https://github.com/tooolbox/node-potrace) — PNG → SVG vectorization
+- [archiver](https://github.com/archiverjs/node-archiver) — `.zip` generation
+- [react-dropzone](https://react-dropzone.js.org) — drag-and-drop upload
+- Tailwind CSS
+
+## Structure
+
+```
+src/
+  app/
+    page.tsx              main screen
+    layout.tsx
+    api/process/route.ts  receives images + configs, processes them, returns the .zip
+  components/
+    ImageUploader.tsx      upload, preview grid, global/per-image adjustments, download
+    AdjustmentControls.tsx adjustment form (SVG, trim, resize, output color)
+  lib/
+    image/
+      config.ts            config types and validation
+      validation.ts         upload validation (type, count, size)
+      trim.ts / resize.ts / recolor.ts / svg.ts   image operations (sharp/potrace)
+      process.ts            orchestrates the operations above per image
+    uploadWithProgress.ts   XHR-based upload with real progress
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Each image operation is a pure, isolated function under `lib/image/`, with no UI logic mixed in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Running locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Requires Node.js 20+.
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Other commands:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build   # production build
+npm run start   # run the production build
+npm run lint    # eslint
+npx tsc --noEmit  # type check
+```
 
-## Deploy on Vercel
+## Current limits
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 1 to 50 images per batch
+- 1 MB per file, 4 MB total per batch (kept under Vercel's free-tier request body limit)
+- SVG conversion assumes single-color, outline-style icons — not suited for photos or images with gradients/multiple colors
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Details and rationale for each limit are in [APP.md](APP.md).

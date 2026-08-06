@@ -11,6 +11,7 @@ import {
 import {
   AdjustmentConfig,
   DEFAULT_CONFIG,
+  getRemoveBackgroundError,
   getResizeError,
   resolveConfig,
 } from "@/lib/image/config";
@@ -123,8 +124,13 @@ export default function ImageUploader() {
   }
 
   const hasInvalidConfig = images.some((image) => {
-    const resize = resolveConfig(globalConfig, image.override).resize;
-    return resize !== null && getResizeError(resize) !== null;
+    const config = resolveConfig(globalConfig, image.override);
+    const hasResizeError =
+      config.resize !== null && getResizeError(config.resize) !== null;
+    const hasBackgroundError =
+      config.removeBackground !== null &&
+      getRemoveBackgroundError(config.removeBackground) !== null;
+    return hasResizeError || hasBackgroundError;
   });
 
   async function handleProcessAndDownload() {
@@ -292,7 +298,7 @@ export default function ImageUploader() {
 
           {hasInvalidConfig && (
             <p className="text-sm text-red-600 dark:text-red-400">
-              Corrija as dimensões de redimensionamento inválidas antes de processar.
+              Corrija os ajustes inválidos (redimensionamento ou remoção de fundo) antes de processar.
             </p>
           )}
 

@@ -3,6 +3,7 @@ import { trimImage } from "@/lib/image/trim";
 import { resizeImage } from "@/lib/image/resize";
 import { convertToSvg } from "@/lib/image/svg";
 import { recolorImage } from "@/lib/image/recolor";
+import { removeBackground } from "@/lib/image/removeBackground";
 
 export interface ProcessedImage {
   buffer: Buffer;
@@ -15,6 +16,10 @@ export async function processImage(
   config: AdjustmentConfig
 ): Promise<ProcessedImage> {
   let working = input;
+
+  if (config.removeBackground) {
+    working = await removeBackground(working, config.removeBackground);
+  }
 
   if (config.trim) {
     working = await trimImage(working);
