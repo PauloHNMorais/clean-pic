@@ -9,7 +9,9 @@ import {
   MAX_TOTAL_UPLOAD_BYTES,
   MIN_IMAGES,
   formatMaxTotalSize,
+  sanitizeFileName,
 } from "@/lib/image/validation";
+import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,7 +29,7 @@ function stripExtension(filename: string): string {
 function uniqueName(
   baseName: string,
   extension: string,
-  usedNames: Set<string>
+  usedNames: Set<string>,
 ): string {
   let candidate = `${baseName}.${extension}`;
   let suffix = 1;
@@ -40,7 +42,7 @@ function uniqueName(
 }
 
 async function buildZip(
-  files: { name: string; buffer: Buffer }[]
+  files: { name: string; buffer: Buffer }[],
 ): Promise<Buffer> {
   const archive = new ZipArchive({ zlib: { level: 9 } });
   const stream = new PassThrough();
@@ -61,16 +63,23 @@ async function buildZip(
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (isRateLimited(getClientIp(request))) {
+    return Response.json(
+      { error: "Muitas requisições. Aguarde um minuto e tente novamente." },
+      { status: 429 },
+    );
+  }
+
   const formData = await request.formData();
-  const files = formData.getAll("images").filter(
-    (entry): entry is File => entry instanceof File
-  );
+  const files = formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File);
   const configsRaw = formData.get("configs");
 
   if (typeof configsRaw !== "string") {
     return Response.json(
       { error: "Campo 'configs' ausente ou inválido" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -79,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
       {
         error: `Envie entre ${MIN_IMAGES} e ${MAX_IMAGES} imagens (recebido: ${files.length})`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -89,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
       {
         error: `Tamanho total dos arquivos excede o limite de ${formatMaxTotalSize()}`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -99,21 +108,21 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json(
       { error: "Campo 'configs' não é um JSON válido" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (!Array.isArray(configs) || configs.length !== files.length) {
     return Response.json(
       { error: "'configs' deve ser um array com o mesmo tamanho de 'images'" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (!configs.every(isValidAdjustmentConfig)) {
     return Response.json(
       { error: "Um ou mais itens de 'configs' têm formato inválido" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -146,9 +155,9 @@ export async function POST(request: Request): Promise<Response> {
       const inputBuffer = Buffer.from(await file.arrayBuffer());
       const processed = await processImage(inputBuffer, config);
       const name = uniqueName(
-        stripExtension(file.name),
+        stripExtension(sanitizeFileName(file.name)),
         processed.extension,
-        usedNames
+        usedNames,
       );
 
       results.push({ name, buffer: processed.buffer });
@@ -163,7 +172,7 @@ export async function POST(request: Request): Promise<Response> {
   if (results.length === 0) {
     return Response.json(
       { error: "Nenhuma imagem pôde ser processada", details: errors },
-      { status: 422 }
+      { status: 422 },
     );
   }
 

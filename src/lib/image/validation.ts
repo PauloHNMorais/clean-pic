@@ -23,6 +23,23 @@ export const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
 // overhead (boundaries/headers per part) and the "configs" JSON field.
 export const MAX_TOTAL_UPLOAD_BYTES = 4 * 1024 * 1024;
 
+// file.name is attacker-controlled (a direct API call can set it to anything,
+// bypassing the browser's file picker) and gets used as a zip entry name in
+// route.ts — without stripping path segments, a name like "../../etc/foo"
+// would become a Zip Slip: an entry that, on extraction with a tool lacking
+// path-traversal protection, writes outside the target directory.
+export function sanitizeFileName(name: string): string {
+  const lastSegment = name.split(/[/\\]/).pop() ?? "";
+  const withoutLeadingDots = lastSegment.replace(/^\.+/, "");
+  return withoutLeadingDots || "imagem";
+}
+
+// Best-effort abuse protection for /api/process, which is public and does
+// CPU-bound work (sharp/potrace) per request. Per-IP, in-memory — see
+// rateLimit.ts for why this is "best-effort" rather than a hard guarantee.
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+export const RATE_LIMIT_MAX_REQUESTS = 10;
+
 export interface ValidationResult {
   accepted: File[];
   rejected: { file: File; reason: string }[];
