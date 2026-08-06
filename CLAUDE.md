@@ -1,6 +1,6 @@
-# PNG Tool
+# CleanPic
 
-Ferramenta web para ajuste em lote de imagens PNG (converter para SVG, cortar espaços vazios, redimensionar) com download em zip. Ver [APP.md](APP.md) para os requisitos completos.
+Ferramenta web para ajuste em lote de imagens (JPEG, PNG, WebP, GIF, AVIF na entrada — PNG, SVG ou ICO na saída: cortar espaços vazios, redimensionar, trocar cor, remover fundo) com download em zip. Ver [APP.md](APP.md) para os requisitos completos.
 
 ## Stack
 
@@ -20,9 +20,23 @@ Ferramenta web para ajuste em lote de imagens PNG (converter para SVG, cortar es
 5. **Validações e regras de negócio** — limite de 1–50 imagens, tratamento de erros (formato inválido, falha na conversão SVG, etc.)
 6. **Polimento** — feedback de progresso durante processamento em lote, tratamento de casos extremos (imagem sem transparência para o trim, dimensões inválidas no resize)
 
-## Conversão PNG → SVG
+## Entrada multi-formato, saída PNG/SVG/ICO
 
-Escopo assumido (ver [APP.md](APP.md)): ícones de cor única em estilo outline sobre fundo transparente. Fotos e imagens com múltiplas cores/gradientes não têm boa fidelidade com essa abordagem e ficam fora de escopo.
+Entrada aceita: JPEG, PNG, WebP, GIF, AVIF — lista em `ACCEPTED_MIME_TYPES` (`validation.ts`), validada tanto no dropzone do cliente quanto na rota (defesa em profundidade). Ficaram de fora:
+- **TIFF**: `sharp` decodifica, mas navegador não exibe em `<img>` — entraria como upload aceito e preview quebrado. Não vale a complexidade de um fallback só pra isso.
+- **SVG**: rasterizar SVG de entrada não-confiável é superfície de ataque own (parsing de XML), e o pipeline inteiro (trim/resize/recolor/remove-bg) é construído em cima de pixel bruto, não vetor.
+
+Saída é uma escolha explícita (`AdjustmentConfig.outputFormat: "png" | "svg" | "ico"`, era um `toSvg: boolean` antes de aceitar múltiplos formatos de entrada — fazia sentido como boolean quando "não-SVG" só podia significar "continua PNG"; deixou de fazer sentido implícito quando o formato de entrada passou a variar). A extensão do arquivo de saída já vinha do `processed.extension` no `route.ts`, não do nome do arquivo original — não precisou de mudança nenhuma ali pra suportar entrada multi-formato nem a saída ICO.
+
+### Saída ICO (`ico.ts`)
+
+Sem dependência nova — o formato ICO moderno permite embutir um PNG completo por entrada (suportado desde o Vista), então o encoder é só um header binário pequeno (`ICONDIR` + `ICONDIRENTRY`, ~22 bytes) na frente do PNG que o resto do pipeline já produz. Sempre gera **uma única entrada** (não é um bundle multi-resolução tipo favicon.ico com 16/32/48px juntos) — mantém o modelo "uma config resolvida → um arquivo de saída" do resto do app; gerar múltiplos tamanhos exigiria reprocessar a imagem várias vezes com resizes diferentes por config, o que quebra esse modelo.
+
+Restrição real do formato: `ICONDIRENTRY` codifica largura/altura em 1 byte cada (0 = 256), então nada maior que 256×256 cabe. Em vez de validar isso na UI e obrigar o usuário a lembrar de ajustar o resize também, o encoder reduz automaticamente (mantendo proporção, sem upscale) qualquer imagem que chegue maior que isso — testado com fonte 512×512 sem resize (foi pra 256×256) e com resize explícito 500×300 pedido junto com ICO (foi pra 256×154, proporção preservada). A UI mostra um aviso quando `resize` + `outputFormat: "ico"` juntos passariam de 256px, pra não ser uma surpresa silenciosa.
+
+## Conversão para SVG
+
+Escopo assumido (ver [APP.md](APP.md)): ícones de cor única em estilo outline sobre fundo transparente (de qualquer formato de entrada suportado). Fotos e imagens com múltiplas cores/gradientes não têm boa fidelidade com essa abordagem e ficam fora de escopo.
 
 Abordagem:
 - **Binarizar pelo canal alfa**, não por luminância — como a imagem é de cor única com fundo transparente, o alfa é uma máscara mais confiável que threshold de cor
@@ -32,7 +46,7 @@ Abordagem:
 - Resolução baixa de origem (ícones de 16–32px) tende a gerar vetor "blocado" — documentar como limitação conhecida, não tentar compensar via lógica extra
 - Antes de integrar a lib no pipeline, validar com um teste manual (CLI do potrace) em 5–10 PNGs reais representativos (formas simples, com buraco, traço fino, traço grosso) para confirmar que o resultado é aceitável
 
-Implementado em `src/lib/image/svg.ts`: lê o PNG via `sharp`, gera um bitmap binário (preto/branco) a partir do canal alfa, extrai a cor de preenchimento do primeiro pixel opaco encontrado (em vez de assumir preto) e passa esse bitmap pro `potrace.trace`. Quando `resize` também está marcado, o SVG resultante recebe `width`/`height` sobrescritos (mantendo o `viewBox` original) em vez de rasterizar-redimensionar-vetorizar — como é vetor, isso escala sem perda.
+Implementado em `src/lib/image/svg.ts`: lê a imagem (qualquer formato de entrada aceito) via `sharp`, gera um bitmap binário (preto/branco) a partir do canal alfa, extrai a cor de preenchimento do primeiro pixel opaco encontrado (em vez de assumir preto) e passa esse bitmap pro `potrace.trace`. Quando `resize` também está marcado, o SVG resultante recebe `width`/`height` sobrescritos (mantendo o `viewBox` original) em vez de rasterizar-redimensionar-vetorizar — como é vetor, isso escala sem perda.
 
 ### Cor de saída customizável (`outputColor`)
 

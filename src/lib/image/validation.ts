@@ -1,6 +1,21 @@
 export const MIN_IMAGES = 1;
 export const MAX_IMAGES = 50;
-export const ACCEPTED_MIME_TYPE = "image/png";
+
+// Raster formats sharp can decode in this build, restricted to ones
+// browsers can also render natively in an <img> tag (needed for the
+// preview thumbnail) — sharp also decodes TIFF, but browsers don't
+// display it, so it's left out to avoid a broken-preview UX.
+// SVG input is deliberately left out too — rasterizing untrusted SVG is
+// its own can of worms (XML parsing surface), and it doesn't fit the
+// trim/resize/recolor pipeline, which is built around raster pixel data.
+export const ACCEPTED_MIME_TYPES: Record<string, string[]> = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/webp": [".webp"],
+  "image/gif": [".gif"],
+  "image/avif": [".avif"],
+};
+
 export const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
 
 // Vercel's serverless functions hard-cap the whole request body at 4.5MB,
@@ -32,8 +47,8 @@ export function validateNewFiles(
   const validFiles: File[] = [];
 
   for (const file of incoming) {
-    if (file.type !== ACCEPTED_MIME_TYPE) {
-      rejected.push({ file, reason: "não é um arquivo PNG" });
+    if (!(file.type in ACCEPTED_MIME_TYPES)) {
+      rejected.push({ file, reason: "formato de imagem não suportado" });
       continue;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {

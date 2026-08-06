@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type FileRejection, useDropzone } from "react-dropzone";
 import {
+  ACCEPTED_MIME_TYPES,
   MAX_IMAGES,
   MAX_TOTAL_UPLOAD_BYTES,
   formatMaxTotalSize,
@@ -11,6 +12,7 @@ import {
 import {
   AdjustmentConfig,
   DEFAULT_CONFIG,
+  getOutputColorError,
   getRemoveBackgroundError,
   getResizeError,
   resolveConfig,
@@ -52,7 +54,7 @@ export default function ImageUploader() {
     (acceptedFiles: File[], dropzoneRejections: FileRejection[]) => {
       const currentTotalBytes = images.reduce(
         (sum, image) => sum + image.file.size,
-        0
+        0,
       );
       const { accepted, rejected, limitExceededCount, totalSizeExceededCount } =
         validateNewFiles(acceptedFiles, images.length, currentTotalBytes);
@@ -66,31 +68,31 @@ export default function ImageUploader() {
 
       const newErrors: string[] = [];
       for (const { file } of dropzoneRejections) {
-        newErrors.push(`${file.name}: não é um arquivo PNG`);
+        newErrors.push(`${file.name}: formato de imagem não suportado`);
       }
       for (const { file, reason } of rejected) {
         newErrors.push(`${file.name}: ${reason}`);
       }
       if (limitExceededCount > 0) {
         newErrors.push(
-          `Limite de ${MAX_IMAGES} imagens atingido — ${limitExceededCount} arquivo(s) não foram adicionados`
+          `Limite de ${MAX_IMAGES} imagens atingido — ${limitExceededCount} arquivo(s) não foram adicionados`,
         );
       }
       if (totalSizeExceededCount > 0) {
         newErrors.push(
-          `Limite total de upload (${formatMaxTotalSize()}) atingido — ${totalSizeExceededCount} arquivo(s) não foram adicionados`
+          `Limite total de upload (${formatMaxTotalSize()}) atingido — ${totalSizeExceededCount} arquivo(s) não foram adicionados`,
         );
       }
 
       setImages((prev) => [...prev, ...newImages]);
       setErrors(newErrors);
     },
-    [images]
+    [images],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/png": [".png"] },
+    accept: ACCEPTED_MIME_TYPES,
     disabled: images.length >= MAX_IMAGES,
   });
 
@@ -112,15 +114,14 @@ export default function ImageUploader() {
 
   function setOverride(id: string, config: AdjustmentConfig | null) {
     setImages((prev) =>
-      prev.map((image) => (image.id === id ? { ...image, override: config } : image))
+      prev.map((image) =>
+        image.id === id ? { ...image, override: config } : image,
+      ),
     );
   }
 
   function toggleIndividual(id: string, current: UploadedImage) {
-    setOverride(
-      id,
-      current.override === null ? { ...globalConfig } : null
-    );
+    setOverride(id, current.override === null ? { ...globalConfig } : null);
   }
 
   const hasInvalidConfig = images.some((image) => {
@@ -130,7 +131,10 @@ export default function ImageUploader() {
     const hasBackgroundError =
       config.removeBackground !== null &&
       getRemoveBackgroundError(config.removeBackground) !== null;
-    return hasResizeError || hasBackgroundError;
+    const hasOutputColorError =
+      config.outputColor !== null &&
+      getOutputColorError(config.outputColor) !== null;
+    return hasResizeError || hasBackgroundError || hasOutputColorError;
   });
 
   async function handleProcessAndDownload() {
@@ -146,7 +150,7 @@ export default function ImageUploader() {
         formData.append("images", image.file, image.file.name);
       }
       const configs = images.map((image) =>
-        resolveConfig(globalConfig, image.override)
+        resolveConfig(globalConfig, image.override),
       );
       formData.append("configs", JSON.stringify(configs));
 
@@ -156,7 +160,7 @@ export default function ImageUploader() {
         (percent) => {
           setUploadProgress(percent);
           if (percent >= 100) setAwaitingServer(true);
-        }
+        },
       );
 
       if (xhr.status < 200 || xhr.status >= 300) {
@@ -179,9 +183,7 @@ export default function ImageUploader() {
             filename: string;
             message: string;
           }[];
-          setProcessingErrors(
-            parsed.map((e) => `${e.filename}: ${e.message}`)
-          );
+          setProcessingErrors(parsed.map((e) => `${e.filename}: ${e.message}`));
         } catch {
           // header malformado, ignora
         }
@@ -198,7 +200,9 @@ export default function ImageUploader() {
       URL.revokeObjectURL(url);
     } catch (error) {
       setProcessError(
-        error instanceof Error ? error.message : "Falha desconhecida ao processar"
+        error instanceof Error
+          ? error.message
+          : "Falha desconhecida ao processar",
       );
     } finally {
       setIsProcessing(false);
@@ -207,27 +211,27 @@ export default function ImageUploader() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
+    <div className="flex flex-col gap-6 mx-auto w-full max-w-4xl">
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
           isDragActive
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+            ? "border-primary bg-blue-50 dark:bg-blue-950/30"
             : "border-gray-300 dark:border-gray-700"
         } ${images.length >= MAX_IMAGES ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <input {...getInputProps()} />
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
           {images.length >= MAX_IMAGES
             ? `Limite de ${MAX_IMAGES} imagens atingido`
             : isDragActive
-              ? "Solte os arquivos PNG aqui"
-              : "Arraste imagens PNG aqui ou clique para selecionar (1 a 50 imagens)"}
+              ? "Solte os arquivos aqui"
+              : "Arraste imagens aqui ou clique para selecionar (1 a 50, JPEG/PNG/WebP/GIF/AVIF)"}
         </p>
       </div>
 
       {errors.length > 0 && (
-        <ul className="text-sm text-red-600 dark:text-red-400 list-disc pl-5">
+        <ul className="pl-5 text-error text-sm list-disc">
           {errors.map((error, index) => (
             <li key={index}>{error}</li>
           ))}
@@ -236,8 +240,8 @@ export default function ImageUploader() {
 
       {images.length > 0 && (
         <div className="flex flex-col gap-4">
-          <div className="border rounded-lg p-4 border-gray-200 dark:border-gray-800">
-            <h2 className="text-sm font-medium mb-2">
+          <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg">
+            <h2 className="mb-2 font-medium text-sm">
               Ajustes globais (aplicados a imagens sem ajuste individual)
             </h2>
             <AdjustmentControls
@@ -247,8 +251,8 @@ export default function ImageUploader() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600 dark:text-gray-400 text-sm">
               {images.length} / {MAX_IMAGES} imagens ·{" "}
               {(
                 images.reduce((sum, image) => sum + image.file.size, 0) /
@@ -258,7 +262,7 @@ export default function ImageUploader() {
             </span>
             <button
               onClick={clearAll}
-              className="text-sm text-red-600 dark:text-red-400 hover:underline"
+              className="text-error text-sm hover:underline"
             >
               Remover todas
             </button>
@@ -268,8 +272,10 @@ export default function ImageUploader() {
             <div>
               <button
                 onClick={handleProcessAndDownload}
-                disabled={isProcessing || images.length === 0 || hasInvalidConfig}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  isProcessing || images.length === 0 || hasInvalidConfig
+                }
+                className="bg-primary hover:bg-primary disabled:opacity-50 px-4 py-2 rounded-lg font-medium text-white text-sm disabled:cursor-not-allowed"
               >
                 {isProcessing ? "Processando..." : "Processar e baixar (.zip)"}
               </button>
@@ -277,9 +283,9 @@ export default function ImageUploader() {
 
             {isProcessing && (
               <div className="flex flex-col gap-1 max-w-sm">
-                <div className="h-2 w-full rounded bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                <div className="bg-gray-200 dark:bg-gray-800 rounded w-full h-2 overflow-hidden">
                   <div
-                    className={`h-full bg-blue-600 transition-all ${
+                    className={`h-full bg-primary transition-all ${
                       awaitingServer ? "animate-pulse" : ""
                     }`}
                     style={{
@@ -287,7 +293,7 @@ export default function ImageUploader() {
                     }}
                   />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-gray-500 text-xs">
                   {awaitingServer
                     ? "Processando no servidor..."
                     : `Enviando imagens... ${uploadProgress}%`}
@@ -297,21 +303,18 @@ export default function ImageUploader() {
           </div>
 
           {hasInvalidConfig && (
-            <p className="text-sm text-red-600 dark:text-red-400">
-              Corrija os ajustes inválidos (redimensionamento ou remoção de fundo) antes de processar.
+            <p className="text-error text-sm">
+              Corrija os ajustes inválidos (redimensionamento, cor de saída ou
+              remoção de fundo) antes de processar.
             </p>
           )}
 
-          {processError && (
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {processError}
-            </p>
-          )}
+          {processError && <p className="text-error text-sm">{processError}</p>}
 
           {processingErrors.length > 0 && (
-            <div className="text-sm text-amber-600 dark:text-amber-400">
+            <div className="text-error text-sm">
               <p>Algumas imagens não puderam ser processadas:</p>
-              <ul className="list-disc pl-5">
+              <ul className="pl-5 list-disc">
                 {processingErrors.map((error, index) => (
                   <li key={index}>{error}</li>
                 ))}
@@ -319,20 +322,20 @@ export default function ImageUploader() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {images.map((image) => (
               <div
                 key={image.id}
-                className="relative border rounded-lg p-2 flex flex-col gap-2 border-gray-200 dark:border-gray-800"
+                className="relative flex flex-col gap-2 p-2 border border-gray-200 dark:border-gray-800 rounded-lg"
               >
                 <button
                   onClick={() => removeImage(image.id)}
                   aria-label={`Remover ${image.file.name}`}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center hover:bg-black/80"
+                  className="top-1 right-1 absolute flex justify-center items-center bg-black/60 hover:bg-black/80 rounded-full w-6 h-6 text-white text-xs"
                 >
                   ×
                 </button>
-                <div className="aspect-square flex items-center justify-center bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)] bg-size-[16px_16px] rounded">
+                <div className="flex justify-center items-center bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)] rounded bg-size-[16px_16px] aspect-square">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={image.previewUrl}
@@ -343,13 +346,14 @@ export default function ImageUploader() {
                 <div className="text-xs truncate" title={image.file.name}>
                   {image.file.name}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-gray-500 text-xs">
                   {formatSize(image.file.size)}
                 </div>
 
-                <label className="flex items-center gap-2 text-xs pt-2 border-t border-gray-200 dark:border-gray-800">
+                <label className="flex items-center gap-2 pt-2 border-gray-200 dark:border-gray-800 border-t text-xs">
                   <input
                     type="checkbox"
+                    className="accent-primary"
                     checked={image.override !== null}
                     onChange={() => toggleIndividual(image.id, image)}
                   />
@@ -363,7 +367,7 @@ export default function ImageUploader() {
                     onChange={(config) => setOverride(image.id, config)}
                   />
                 ) : (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-gray-500 text-xs">
                     Usando ajustes globais
                   </p>
                 )}

@@ -10,8 +10,10 @@ export interface RemoveBackgroundConfig {
   tolerance: number;
 }
 
+export type OutputFormat = "png" | "svg" | "ico";
+
 export interface AdjustmentConfig {
-  toSvg: boolean;
+  outputFormat: OutputFormat;
   trim: boolean;
   resize: ResizeConfig | null;
   outputColor: string | null;
@@ -26,7 +28,7 @@ export const MIN_TOLERANCE = 0;
 export const MAX_TOLERANCE = 100;
 
 export const DEFAULT_CONFIG: AdjustmentConfig = {
-  toSvg: false,
+  outputFormat: "png",
   trim: false,
   resize: null,
   outputColor: null,
@@ -65,6 +67,10 @@ export function getResizeError(resize: ResizeConfig): string | null {
     return `Altura deve ser um número inteiro entre ${MIN_DIMENSION} e ${MAX_DIMENSION}`;
   }
   return null;
+}
+
+export function getOutputColorError(color: string): string | null {
+  return isValidHexColor(color) ? null : "Cor inválida — use o formato #rrggbb";
 }
 
 export function getRemoveBackgroundError(
@@ -113,7 +119,13 @@ export function isValidAdjustmentConfig(
   if (typeof value !== "object" || value === null) return false;
   const config = value as Record<string, unknown>;
 
-  if (typeof config.toSvg !== "boolean") return false;
+  if (
+    config.outputFormat !== "png" &&
+    config.outputFormat !== "svg" &&
+    config.outputFormat !== "ico"
+  ) {
+    return false;
+  }
   if (typeof config.trim !== "boolean") return false;
   if (config.outputColor !== null && !isValidHexColor(config.outputColor)) {
     return false;

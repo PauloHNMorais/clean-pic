@@ -4,11 +4,12 @@ import { resizeImage } from "@/lib/image/resize";
 import { convertToSvg } from "@/lib/image/svg";
 import { recolorImage } from "@/lib/image/recolor";
 import { removeBackground } from "@/lib/image/removeBackground";
+import { convertToIco } from "@/lib/image/ico";
 
 export interface ProcessedImage {
   buffer: Buffer;
-  extension: "svg" | "png";
-  mimeType: "image/svg+xml" | "image/png";
+  extension: "svg" | "png" | "ico";
+  mimeType: "image/svg+xml" | "image/png" | "image/x-icon";
 }
 
 export async function processImage(
@@ -25,7 +26,7 @@ export async function processImage(
     working = await trimImage(working);
   }
 
-  if (config.toSvg) {
+  if (config.outputFormat === "svg") {
     const svg = await convertToSvg(
       working,
       config.resize ?? undefined,
@@ -44,6 +45,11 @@ export async function processImage(
 
   if (config.resize) {
     working = await resizeImage(working, config.resize.width, config.resize.height);
+  }
+
+  if (config.outputFormat === "ico") {
+    const ico = await convertToIco(working);
+    return { buffer: ico, extension: "ico", mimeType: "image/x-icon" };
   }
 
   return { buffer: working, extension: "png", mimeType: "image/png" };

@@ -3,6 +3,7 @@ import { PassThrough } from "node:stream";
 import { AdjustmentConfig, isValidAdjustmentConfig } from "@/lib/image/config";
 import { processImage } from "@/lib/image/process";
 import {
+  ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
   MAX_IMAGES,
   MAX_TOTAL_UPLOAD_BYTES,
@@ -125,8 +126,11 @@ export async function POST(request: Request): Promise<Response> {
     const file = files[i];
     const config = validConfigs[i];
 
-    if (file.type !== "image/png") {
-      errors.push({ filename: file.name, message: "não é um arquivo PNG" });
+    if (!(file.type in ACCEPTED_MIME_TYPES)) {
+      errors.push({
+        filename: file.name,
+        message: "formato de imagem não suportado",
+      });
       continue;
     }
 
