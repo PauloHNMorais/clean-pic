@@ -4,6 +4,7 @@ import { resizeImage } from "@/lib/image/resize";
 import { convertToSvg } from "@/lib/image/svg";
 import { recolorImage } from "@/lib/image/recolor";
 import { removeBackground } from "@/lib/image/removeBackground";
+import { normalizeOutline } from "@/lib/image/normalizeOutline";
 import { convertToIco } from "@/lib/image/ico";
 
 export interface ProcessedImage {
@@ -20,6 +21,13 @@ export async function processImage(
 
   if (config.removeBackground) {
     working = await removeBackground(working, config.removeBackground);
+  }
+
+  if (config.normalizeOutline) {
+    working = await normalizeOutline(
+      working,
+      config.normalizeOutline.strokeWidth
+    );
   }
 
   if (config.trim) {

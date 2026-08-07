@@ -8,6 +8,9 @@ const recolorImage = vi.fn(async (buf: Buffer) => Buffer.from(`recolor(${buf})`)
 const removeBackground = vi.fn(async (buf: Buffer) =>
   Buffer.from(`removeBg(${buf})`)
 );
+const normalizeOutline = vi.fn(async (buf: Buffer) =>
+  Buffer.from(`normalizeOutline(${buf})`)
+);
 const convertToIco = vi.fn(async (buf: Buffer) => Buffer.from(`ico(${buf})`));
 
 vi.mock("@/lib/image/trim", () => ({ trimImage }));
@@ -15,6 +18,7 @@ vi.mock("@/lib/image/resize", () => ({ resizeImage }));
 vi.mock("@/lib/image/svg", () => ({ convertToSvg }));
 vi.mock("@/lib/image/recolor", () => ({ recolorImage }));
 vi.mock("@/lib/image/removeBackground", () => ({ removeBackground }));
+vi.mock("@/lib/image/normalizeOutline", () => ({ normalizeOutline }));
 vi.mock("@/lib/image/ico", () => ({ convertToIco }));
 
 const { processImage } = await import("@/lib/image/process");
@@ -27,6 +31,7 @@ beforeEach(() => {
   convertToSvg.mockClear();
   recolorImage.mockClear();
   removeBackground.mockClear();
+  normalizeOutline.mockClear();
   convertToIco.mockClear();
 });
 
@@ -43,6 +48,7 @@ describe("processImage", () => {
     expect(resizeImage).not.toHaveBeenCalled();
     expect(recolorImage).not.toHaveBeenCalled();
     expect(removeBackground).not.toHaveBeenCalled();
+    expect(normalizeOutline).not.toHaveBeenCalled();
     expect(convertToSvg).not.toHaveBeenCalled();
     expect(convertToIco).not.toHaveBeenCalled();
   });
@@ -62,6 +68,44 @@ describe("processImage", () => {
     const removeBgOrder = removeBackground.mock.invocationCallOrder[0];
     const trimOrder = trimImage.mock.invocationCallOrder[0];
     expect(removeBgOrder).toBeLessThan(trimOrder);
+  });
+
+  it("runs normalizeOutline after background removal and before trim", async () => {
+    const config: AdjustmentConfig = {
+      ...DEFAULT_CONFIG,
+      trim: true,
+      removeBackground: { color: "#ffffff", tolerance: 10 },
+      normalizeOutline: { strokeWidth: 5 },
+    };
+
+    await processImage(INPUT, config);
+
+    const removeBgOutput = await removeBackground.mock.results[0].value;
+    expect(normalizeOutline).toHaveBeenCalledWith(removeBgOutput, 5);
+    expect(trimImage).toHaveBeenCalledWith(await normalizeOutline.mock.results[0].value);
+
+    const removeBgOrder = removeBackground.mock.invocationCallOrder[0];
+    const normalizeOrder = normalizeOutline.mock.invocationCallOrder[0];
+    const trimOrder = trimImage.mock.invocationCallOrder[0];
+    expect(removeBgOrder).toBeLessThan(normalizeOrder);
+    expect(normalizeOrder).toBeLessThan(trimOrder);
+  });
+
+  it("feeds the normalized buffer into SVG conversion", async () => {
+    const config: AdjustmentConfig = {
+      ...DEFAULT_CONFIG,
+      outputFormat: "svg",
+      normalizeOutline: { strokeWidth: 3 },
+    };
+
+    await processImage(INPUT, config);
+
+    const normalizedOutput = await normalizeOutline.mock.results[0].value;
+    expect(convertToSvg).toHaveBeenCalledWith(
+      normalizedOutput,
+      undefined,
+      undefined
+    );
   });
 
   it("for SVG output, forwards resize/outputColor into convertToSvg instead of calling resizeImage/recolorImage", async () => {
@@ -111,13 +155,14 @@ describe("processImage", () => {
     expect(result.mimeType).toBe("image/x-icon");
   });
 
-  it("chains removeBackground -> trim -> recolor -> resize -> ico in order", async () => {
+  it("chains removeBackground -> normalizeOutline -> trim -> recolor -> resize -> ico in order", async () => {
     const config: AdjustmentConfig = {
       outputFormat: "ico",
       trim: true,
       resize: { width: 16, height: 16 },
       outputColor: "#abcdef",
       removeBackground: { color: null, tolerance: 5 },
+      normalizeOutline: { strokeWidth: 6 },
     };
 
     await processImage(INPUT, config);
@@ -125,7 +170,10 @@ describe("processImage", () => {
     const removeBgOutput = await removeBackground.mock.results[0].value;
     expect(removeBackground).toHaveBeenCalledWith(INPUT, config.removeBackground);
 
-    expect(trimImage).toHaveBeenCalledWith(removeBgOutput);
+    expect(normalizeOutline).toHaveBeenCalledWith(removeBgOutput, 6);
+    const normalizeOutput = await normalizeOutline.mock.results[0].value;
+
+    expect(trimImage).toHaveBeenCalledWith(normalizeOutput);
     const trimOutput = await trimImage.mock.results[0].value;
 
     expect(recolorImage).toHaveBeenCalledWith(trimOutput, "#abcdef");

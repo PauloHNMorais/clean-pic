@@ -10,6 +10,11 @@ export interface RemoveBackgroundConfig {
   tolerance: number;
 }
 
+export interface NormalizeOutlineConfig {
+  /** target stroke width, in pixels, for the redrawn outline */
+  strokeWidth: number;
+}
+
 export type OutputFormat = "png" | "svg" | "ico";
 
 export interface AdjustmentConfig {
@@ -18,6 +23,7 @@ export interface AdjustmentConfig {
   resize: ResizeConfig | null;
   outputColor: string | null;
   removeBackground: RemoveBackgroundConfig | null;
+  normalizeOutline: NormalizeOutlineConfig | null;
 }
 
 export const DEFAULT_RESIZE: ResizeConfig = { width: 256, height: 256 };
@@ -26,6 +32,9 @@ export const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 export const DEFAULT_TOLERANCE = 20;
 export const MIN_TOLERANCE = 0;
 export const MAX_TOLERANCE = 100;
+export const DEFAULT_STROKE_WIDTH = 4;
+export const MIN_STROKE_WIDTH = 1;
+export const MAX_STROKE_WIDTH = 50;
 
 export const DEFAULT_CONFIG: AdjustmentConfig = {
   outputFormat: "png",
@@ -33,6 +42,7 @@ export const DEFAULT_CONFIG: AdjustmentConfig = {
   resize: null,
   outputColor: null,
   removeBackground: null,
+  normalizeOutline: null,
 };
 
 export const MIN_DIMENSION = 1;
@@ -89,6 +99,19 @@ export function getRemoveBackgroundError(
   return null;
 }
 
+export function getNormalizeOutlineError(
+  config: NormalizeOutlineConfig
+): string | null {
+  if (
+    !Number.isFinite(config.strokeWidth) ||
+    config.strokeWidth < MIN_STROKE_WIDTH ||
+    config.strokeWidth > MAX_STROKE_WIDTH
+  ) {
+    return `Espessura deve ser um número entre ${MIN_STROKE_WIDTH} e ${MAX_STROKE_WIDTH}`;
+  }
+  return null;
+}
+
 function isValidResizeShape(value: unknown): boolean {
   if (value === null) return true;
   if (typeof value !== "object") return false;
@@ -113,6 +136,16 @@ function isValidRemoveBackgroundShape(value: unknown): boolean {
   );
 }
 
+function isValidNormalizeOutlineShape(value: unknown): boolean {
+  if (value === null) return true;
+  if (typeof value !== "object") return false;
+  const config = value as Record<string, unknown>;
+  if (typeof config.strokeWidth !== "number") return false;
+  return (
+    getNormalizeOutlineError({ strokeWidth: config.strokeWidth }) === null
+  );
+}
+
 export function isValidAdjustmentConfig(
   value: unknown
 ): value is AdjustmentConfig {
@@ -132,6 +165,7 @@ export function isValidAdjustmentConfig(
   }
   if (!isValidResizeShape(config.resize)) return false;
   if (!isValidRemoveBackgroundShape(config.removeBackground)) return false;
+  if (!isValidNormalizeOutlineShape(config.normalizeOutline)) return false;
 
   return true;
 }

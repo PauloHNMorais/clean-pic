@@ -3,11 +3,15 @@ import {
   DEFAULT_BACKGROUND_COLOR,
   DEFAULT_OUTPUT_COLOR,
   DEFAULT_RESIZE,
+  DEFAULT_STROKE_WIDTH,
   DEFAULT_TOLERANCE,
   MAX_DIMENSION,
+  MAX_STROKE_WIDTH,
   MAX_TOLERANCE,
   MIN_DIMENSION,
+  MIN_STROKE_WIDTH,
   MIN_TOLERANCE,
+  getNormalizeOutlineError,
   getOutputColorError,
   getRemoveBackgroundError,
   getResizeError,
@@ -164,6 +168,54 @@ export default function AdjustmentControls({
         />
         Cortar espaços vazios
       </label>
+
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-primary"
+          checked={config.normalizeOutline !== null}
+          onChange={(e) =>
+            onChange({
+              ...config,
+              normalizeOutline: e.target.checked
+                ? { strokeWidth: DEFAULT_STROKE_WIDTH }
+                : null,
+            })
+          }
+        />
+        Normalizar contorno
+      </label>
+
+      {config.normalizeOutline && (
+        <div className="flex flex-col gap-1 pl-6">
+          <label className="flex items-center gap-1">
+            Espessura
+            <input
+              type="number"
+              min={MIN_STROKE_WIDTH}
+              max={MAX_STROKE_WIDTH}
+              value={config.normalizeOutline.strokeWidth}
+              onChange={(e) =>
+                onChange({
+                  ...config,
+                  normalizeOutline: {
+                    ...config.normalizeOutline!,
+                    strokeWidth: Number(e.target.value),
+                  },
+                })
+              }
+              className="bg-transparent px-2 py-1 border border-gray-300 dark:border-gray-700 rounded w-20"
+              id={`${idPrefix}-stroke-width`}
+            />
+            px
+          </label>
+          {getNormalizeOutlineError(config.normalizeOutline) && (
+            <p className="text-error text-xs">
+              {getNormalizeOutlineError(config.normalizeOutline)}
+            </p>
+          )}
+        </div>
+      )}
 
       <label className="flex items-center gap-2">
         <input

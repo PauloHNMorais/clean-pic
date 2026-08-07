@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CONFIG,
   MAX_DIMENSION,
+  MAX_STROKE_WIDTH,
   MAX_TOLERANCE,
   MIN_DIMENSION,
+  MIN_STROKE_WIDTH,
   MIN_TOLERANCE,
+  getNormalizeOutlineError,
   getOutputColorError,
   getRemoveBackgroundError,
   getResizeError,
@@ -107,6 +110,22 @@ describe("getRemoveBackgroundError", () => {
   });
 });
 
+describe("getNormalizeOutlineError", () => {
+  it("accepts a stroke width within range", () => {
+    expect(getNormalizeOutlineError({ strokeWidth: MIN_STROKE_WIDTH })).toBeNull();
+    expect(getNormalizeOutlineError({ strokeWidth: MAX_STROKE_WIDTH })).toBeNull();
+  });
+
+  it("rejects a stroke width outside [MIN_STROKE_WIDTH, MAX_STROKE_WIDTH]", () => {
+    expect(
+      getNormalizeOutlineError({ strokeWidth: MIN_STROKE_WIDTH - 1 })
+    ).not.toBeNull();
+    expect(
+      getNormalizeOutlineError({ strokeWidth: MAX_STROKE_WIDTH + 1 })
+    ).not.toBeNull();
+  });
+});
+
 describe("isValidAdjustmentConfig", () => {
   it("accepts the default config", () => {
     expect(isValidAdjustmentConfig(DEFAULT_CONFIG)).toBe(true);
@@ -120,6 +139,7 @@ describe("isValidAdjustmentConfig", () => {
         resize: { width: 100, height: 100 },
         outputColor: "#ff00ff",
         removeBackground: { color: "#ffffff", tolerance: 10 },
+        normalizeOutline: { strokeWidth: 4 },
       })
     ).toBe(true);
   });
@@ -171,6 +191,21 @@ describe("isValidAdjustmentConfig", () => {
       isValidAdjustmentConfig({
         ...DEFAULT_CONFIG,
         removeBackground: { color: null, tolerance: 200 },
+      })
+    ).toBe(false);
+  });
+
+  it("rejects a malformed normalizeOutline shape", () => {
+    expect(
+      isValidAdjustmentConfig({
+        ...DEFAULT_CONFIG,
+        normalizeOutline: { strokeWidth: "4" },
+      })
+    ).toBe(false);
+    expect(
+      isValidAdjustmentConfig({
+        ...DEFAULT_CONFIG,
+        normalizeOutline: { strokeWidth: MAX_STROKE_WIDTH + 1 },
       })
     ).toBe(false);
   });

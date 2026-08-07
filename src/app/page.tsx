@@ -18,7 +18,7 @@ const structuredData = {
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-stone-950 font-sans">
+    <div className="flex flex-col flex-1 items-center bg-black font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -54,7 +54,7 @@ export default function Home() {
             href="https://github.com/PauloHNMorais"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-zinc-700 dark:hover:text-zinc-300"
+            className="hover:text-zinc-700 dark:hover:text-zinc-300 underline"
           >
             Paulo Morais
           </a>

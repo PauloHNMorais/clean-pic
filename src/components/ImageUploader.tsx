@@ -12,6 +12,7 @@ import {
 import {
   AdjustmentConfig,
   DEFAULT_CONFIG,
+  getNormalizeOutlineError,
   getOutputColorError,
   getRemoveBackgroundError,
   getResizeError,
@@ -134,7 +135,15 @@ export default function ImageUploader() {
     const hasOutputColorError =
       config.outputColor !== null &&
       getOutputColorError(config.outputColor) !== null;
-    return hasResizeError || hasBackgroundError || hasOutputColorError;
+    const hasNormalizeOutlineError =
+      config.normalizeOutline !== null &&
+      getNormalizeOutlineError(config.normalizeOutline) !== null;
+    return (
+      hasResizeError ||
+      hasBackgroundError ||
+      hasOutputColorError ||
+      hasNormalizeOutlineError
+    );
   });
 
   async function handleProcessAndDownload() {
@@ -304,8 +313,9 @@ export default function ImageUploader() {
 
           {hasInvalidConfig && (
             <p className="text-error text-sm">
-              Corrija os ajustes inválidos (redimensionamento, cor de saída ou
-              remoção de fundo) antes de processar.
+              Corrija os ajustes inválidos (redimensionamento, cor de saída,
+              remoção de fundo ou normalização de contorno) antes de
+              processar.
             </p>
           )}
 
