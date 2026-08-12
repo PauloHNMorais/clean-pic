@@ -1,19 +1,23 @@
 export const MIN_IMAGES = 1;
-export const MAX_IMAGES = 50;
+export const MAX_IMAGES = 100;
 
 // Raster formats sharp can decode in this build, restricted to ones
 // browsers can also render natively in an <img> tag (needed for the
 // preview thumbnail) — sharp also decodes TIFF, but browsers don't
 // display it, so it's left out to avoid a broken-preview UX.
-// SVG input is deliberately left out too — rasterizing untrusted SVG is
-// its own can of worms (XML parsing surface), and it doesn't fit the
-// trim/resize/recolor pipeline, which is built around raster pixel data.
+// SVG input is accepted too, but doesn't go through this raster pipeline
+// directly: it's sanitized and rasterized to PNG first (see svgInput.ts)
+// before hitting trim/resize/recolor, which are built around raster pixel
+// data. Rendering it in an <img> preview here is safe even for an
+// untrusted file — <img> never executes embedded scripts/event handlers,
+// unlike inline <svg> or an <object>/<iframe> embed would.
 export const ACCEPTED_MIME_TYPES: Record<string, string[]> = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
   "image/webp": [".webp"],
   "image/gif": [".gif"],
   "image/avif": [".avif"],
+  "image/svg+xml": [".svg"],
 };
 
 export const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
@@ -58,7 +62,7 @@ export function formatMaxTotalSize(): string {
 export function validateNewFiles(
   incoming: File[],
   currentCount: number,
-  currentTotalBytes: number
+  currentTotalBytes: number,
 ): ValidationResult {
   const rejected: { file: File; reason: string }[] = [];
   const validFiles: File[] = [];

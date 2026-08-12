@@ -4,7 +4,7 @@ _[Read in English](README.md)_
 
 **App publicado:** [clean-pic.vercel.app](https://clean-pic.vercel.app)
 
-Ferramenta web para ajustar imagens em lote: envie JPEG, PNG, WebP, GIF ou AVIF, depois corte espaços vazios, redimensione, troque a cor, remova o fundo e exporte como PNG, SVG ou ICO — com ajuste global ou individual por imagem — e baixe tudo em um `.zip`.
+Ferramenta web para ajustar imagens em lote: envie JPEG, PNG, WebP, GIF, AVIF ou SVG, depois corte espaços vazios, redimensione, troque a cor, remova o fundo e exporte como PNG, SVG ou ICO — com ajuste global ou individual por imagem — e baixe tudo em um `.zip`.
 
 Requisitos e regras de negócio completos em [APP.md](APP.md). Decisões técnicas e convenções do projeto em [CLAUDE.md](CLAUDE.md).
 
@@ -63,8 +63,8 @@ npx tsc --noEmit  # checagem de tipos
 
 ## Limites atuais
 
-- 1 a 50 imagens por lote
-- Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF
+- 1 a 100 imagens por lote
+- Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF, SVG
 - 1 MB por arquivo, 4 MB no total do lote (compatível com o limite de corpo de requisição da Vercel gratuita)
 - Conversão para SVG assume ícones de cor única em estilo outline — não é indicada para fotos ou imagens com gradiente/múltiplas cores
 - Remoção de fundo é por cor (chroma key), não segmentação por IA — funciona bem em fundo sólido/quase sólido, não em foto com fundo complexo

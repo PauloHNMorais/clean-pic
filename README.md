@@ -1,10 +1,10 @@
-*[Leia em português](README.pt-BR.md)*
+_[Leia em português](README.pt-BR.md)_
 
 # CleanPic
 
 **Live app:** [clean-pic.vercel.app](https://clean-pic.vercel.app)
 
-A web tool for batch-adjusting images: upload JPEG, PNG, WebP, GIF, or AVIF, then trim empty space, resize, recolor, remove the background, and export as PNG, SVG, or ICO — with global or per-image overrides — then download everything as a `.zip`.
+A web tool for batch-adjusting images: upload JPEG, PNG, WebP, GIF, AVIF, or SVG, then trim empty space, resize, recolor, remove the background, and export as PNG, SVG, or ICO — with global or per-image overrides — then download everything as a `.zip`.
 
 Full requirements and business rules in [APP.md](APP.md). Technical decisions and project conventions in [CLAUDE.md](CLAUDE.md).
 
@@ -63,8 +63,8 @@ npx tsc --noEmit  # type check
 
 ## Current limits
 
-- 1 to 50 images per batch
-- Accepted input formats: JPEG, PNG, WebP, GIF, AVIF
+- 1 to 100 images per batch
+- Accepted input formats: JPEG, PNG, WebP, GIF, AVIF, SVG
 - 1 MB per file, 4 MB total per batch (kept under Vercel's free-tier request body limit)
 - SVG conversion assumes single-color, outline-style icons — not suited for photos or images with gradients/multiple colors
 - Background removal is color-based (chroma key), not AI segmentation — works well on solid/near-solid backgrounds, not on complex photo backgrounds

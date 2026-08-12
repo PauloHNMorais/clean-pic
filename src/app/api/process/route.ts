@@ -2,6 +2,7 @@ import { ZipArchive } from "archiver";
 import { PassThrough } from "node:stream";
 import { AdjustmentConfig, isValidAdjustmentConfig } from "@/lib/image/config";
 import { processImage } from "@/lib/image/process";
+import { rasterizeSvgInput } from "@/lib/image/svgInput";
 import {
   ACCEPTED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
@@ -152,7 +153,10 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-      const inputBuffer = Buffer.from(await file.arrayBuffer());
+      let inputBuffer: Buffer = Buffer.from(await file.arrayBuffer());
+      if (file.type === "image/svg+xml") {
+        inputBuffer = await rasterizeSvgInput(inputBuffer);
+      }
       const processed = await processImage(inputBuffer, config);
       const name = uniqueName(
         stripExtension(sanitizeFileName(file.name)),

@@ -235,7 +235,7 @@ export default function ImageUploader() {
             ? `Limite de ${MAX_IMAGES} imagens atingido`
             : isDragActive
               ? "Solte os arquivos aqui"
-              : "Arraste imagens aqui ou clique para selecionar (1 a 50, JPEG/PNG/WebP/GIF/AVIF)"}
+              : "Arraste imagens aqui ou clique para selecionar (1 a 50, JPEG/PNG/WebP/GIF/AVIF/SVG)"}
         </p>
       </div>
 

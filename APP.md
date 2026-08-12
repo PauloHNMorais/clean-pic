@@ -4,7 +4,7 @@ CleanPic é uma ferramenta web pra ajustar imagens
 
 # Requisitos Funcionais
 
-- O usuário faz upload de imagens em qualquer formato suportado (JPEG, PNG, WebP, GIF, AVIF)
+- O usuário faz upload de imagens em qualquer formato suportado (JPEG, PNG, WebP, GIF, AVIF, SVG)
 - A ferramenta dá as seguintes opções marcáveis (com opção pra ajuste individual ou global):
   - Escolher o formato de saída: PNG, SVG ou ICO
   - Cortar espaços vazios em volta da imagem
@@ -20,8 +20,8 @@ CleanPic é uma ferramenta web pra ajustar imagens
 
 # Regras de Negócio
 
-- Deve deixar escolher entre 1 e 50 imagens
-- Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF. TIFF não entra apesar de suportado no processamento porque o navegador não exibe preview dele; SVG não entra porque foge do modelo de pixel bruto usado no resto do pipeline
+- Deve deixar escolher entre 1 e 100 imagens
+- Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF, SVG. TIFF não entra apesar de suportado no processamento porque o navegador não exibe preview dele. SVG é sanitizado e rasterizado (ver `svgInput.ts`) antes de entrar no pipeline de pixel bruto usado pelo resto do processamento
 - A conversão para SVG é voltada para ícones de cor única em estilo "outline" (contorno). Fotos, gradientes ou imagens com múltiplas cores não têm boa fidelidade nesse processo e ficam fora do escopo garantido — isso vale pra qualquer formato de entrada, não só PNG
 - Cada arquivo tem limite de 1 MB (proteção contra uso excessivo de memória/CPU no processamento)
 - O lote inteiro (soma de todos os arquivos numa mesma requisição) tem limite de 4 MB — esse é o limite que realmente importa pra caber no corpo de requisição de 4,5 MB da Vercel gratuita; o limite por arquivo sozinho não garante isso quando há muitos arquivos pequenos

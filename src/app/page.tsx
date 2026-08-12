@@ -8,7 +8,7 @@ const structuredData = {
   operatingSystem: "Any",
   url: "https://clean-pic.vercel.app",
   description:
-    "Ajuste imagens em lote gratuitamente: corte espaços vazios, redimensione, troque a cor, remova o fundo e converta JPEG, PNG, WebP, GIF ou AVIF em PNG, SVG ou ICO.",
+    "Ajuste imagens em lote gratuitamente: corte espaços vazios, redimensione, troque a cor, remova o fundo e converta JPEG, PNG, WebP, GIF, AVIF ou SVG em PNG, SVG ou ICO.",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -40,7 +40,7 @@ export default function Home() {
           <br />
 
           <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-            Faça upload de 1 a 50 imagens para ajustar e converter em PNG, SVG
+            Faça upload de 1 a 100 imagens para ajustar e converter em PNG, SVG
             ou ICO.
           </p>
         </div>

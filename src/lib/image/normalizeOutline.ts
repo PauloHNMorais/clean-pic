@@ -7,7 +7,7 @@ function getBit(
   width: number,
   height: number,
   x: number,
-  y: number
+  y: number,
 ): number {
   if (x < 0 || x >= width || y < 0 || y >= height) return 0;
   return mask[y * width + x];
@@ -22,7 +22,7 @@ function subIteration(
   img: Uint8Array,
   width: number,
   height: number,
-  step: 1 | 2
+  step: 1 | 2,
 ): boolean {
   const toRemove: number[] = [];
 
@@ -89,7 +89,7 @@ function dilate(
   skeleton: Uint8Array,
   width: number,
   height: number,
-  strokeWidth: number
+  strokeWidth: number,
 ): Uint8Array {
   const radius = strokeWidth / 2;
   const radiusSquared = radius * radius;
@@ -126,7 +126,7 @@ function dilate(
 // under this model and will just shrink to their own medial axis.
 export async function normalizeOutline(
   input: Buffer,
-  strokeWidth: number
+  strokeWidth: number,
 ): Promise<Buffer> {
   const { data, info } = await sharp(input)
     .ensureAlpha()

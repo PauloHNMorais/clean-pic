@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 const SITE_URL = "https://clean-pic.vercel.app";
 const SITE_DESCRIPTION =
-  "Ajuste imagens em lote gratuitamente: corte espaços vazios, redimensione, troque a cor, remova o fundo e converta JPEG, PNG, WebP, GIF ou AVIF em PNG, SVG ou ICO. Sem instalar nada, direto no navegador.";
+  "Ajuste imagens em lote gratuitamente: corte espaços vazios, redimensione, troque a cor, remova o fundo e converta JPEG, PNG, WebP, GIF, AVIF ou SVG em PNG, SVG ou ICO. Sem instalar nada, direto no navegador.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
