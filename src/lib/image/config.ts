@@ -27,6 +27,8 @@ export interface NormalizeOutlineConfig {
 
 export type OutputFormat = "png" | "svg" | "ico";
 
+export type RotateAngle = 0 | 90 | 180 | 270;
+
 export interface AdjustmentConfig {
   outputFormat: OutputFormat;
   trim: boolean;
@@ -34,6 +36,9 @@ export interface AdjustmentConfig {
   outputColor: string | null;
   removeBackground: RemoveBackgroundConfig | null;
   normalizeOutline: NormalizeOutlineConfig | null;
+  rotate: RotateAngle;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
 }
 
 export const DEFAULT_RESIZE: ResizeConfig = {
@@ -57,7 +62,12 @@ export const DEFAULT_CONFIG: AdjustmentConfig = {
   outputColor: null,
   removeBackground: null,
   normalizeOutline: null,
+  rotate: 0,
+  flipHorizontal: false,
+  flipVertical: false,
 };
+
+export const ROTATE_ANGLES: RotateAngle[] = [0, 90, 180, 270];
 
 export const MIN_DIMENSION = 1;
 export const MAX_DIMENSION = 10000;
@@ -190,6 +200,9 @@ export function isValidAdjustmentConfig(
   if (!isValidResizeShape(config.resize)) return false;
   if (!isValidRemoveBackgroundShape(config.removeBackground)) return false;
   if (!isValidNormalizeOutlineShape(config.normalizeOutline)) return false;
+  if (!ROTATE_ANGLES.includes(config.rotate as RotateAngle)) return false;
+  if (typeof config.flipHorizontal !== "boolean") return false;
+  if (typeof config.flipVertical !== "boolean") return false;
 
   return true;
 }

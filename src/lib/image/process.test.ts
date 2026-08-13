@@ -11,6 +11,9 @@ const removeBackground = vi.fn(async (buf: Buffer) =>
 const normalizeOutline = vi.fn(async (buf: Buffer) =>
   Buffer.from(`normalizeOutline(${buf})`)
 );
+const transformImage = vi.fn(async (buf: Buffer) =>
+  Buffer.from(`transform(${buf})`)
+);
 const convertToIco = vi.fn(async (buf: Buffer) => Buffer.from(`ico(${buf})`));
 
 vi.mock("@/lib/image/trim", () => ({ trimImage }));
@@ -19,6 +22,7 @@ vi.mock("@/lib/image/svg", () => ({ convertToSvg }));
 vi.mock("@/lib/image/recolor", () => ({ recolorImage }));
 vi.mock("@/lib/image/removeBackground", () => ({ removeBackground }));
 vi.mock("@/lib/image/normalizeOutline", () => ({ normalizeOutline }));
+vi.mock("@/lib/image/transform", () => ({ transformImage }));
 vi.mock("@/lib/image/ico", () => ({ convertToIco }));
 
 const { processImage } = await import("@/lib/image/process");
@@ -32,6 +36,7 @@ beforeEach(() => {
   recolorImage.mockClear();
   removeBackground.mockClear();
   normalizeOutline.mockClear();
+  transformImage.mockClear();
   convertToIco.mockClear();
 });
 
@@ -49,8 +54,37 @@ describe("processImage", () => {
     expect(recolorImage).not.toHaveBeenCalled();
     expect(removeBackground).not.toHaveBeenCalled();
     expect(normalizeOutline).not.toHaveBeenCalled();
+    expect(transformImage).not.toHaveBeenCalled();
     expect(convertToSvg).not.toHaveBeenCalled();
     expect(convertToIco).not.toHaveBeenCalled();
+  });
+
+  it("runs the transform step after normalizeOutline and before trim", async () => {
+    const config: AdjustmentConfig = {
+      ...DEFAULT_CONFIG,
+      trim: true,
+      normalizeOutline: { strokeWidth: 5 },
+      rotate: 90,
+      flipHorizontal: true,
+      flipVertical: false,
+    };
+
+    await processImage(INPUT, config);
+
+    const normalizedOutput = await normalizeOutline.mock.results[0].value;
+    expect(transformImage).toHaveBeenCalledWith(normalizedOutput, 90, true, false);
+    expect(trimImage).toHaveBeenCalledWith(await transformImage.mock.results[0].value);
+
+    const normalizeOrder = normalizeOutline.mock.invocationCallOrder[0];
+    const transformOrder = transformImage.mock.invocationCallOrder[0];
+    const trimOrder = trimImage.mock.invocationCallOrder[0];
+    expect(normalizeOrder).toBeLessThan(transformOrder);
+    expect(transformOrder).toBeLessThan(trimOrder);
+  });
+
+  it("skips the transform step when rotate is 0 and no flip is requested", async () => {
+    await processImage(INPUT, { ...DEFAULT_CONFIG, trim: true });
+    expect(transformImage).not.toHaveBeenCalled();
   });
 
   it("runs background removal before trim", async () => {
@@ -155,7 +189,7 @@ describe("processImage", () => {
     expect(result.mimeType).toBe("image/x-icon");
   });
 
-  it("chains removeBackground -> normalizeOutline -> trim -> recolor -> resize -> ico in order", async () => {
+  it("chains removeBackground -> normalizeOutline -> transform -> trim -> recolor -> resize -> ico in order", async () => {
     const config: AdjustmentConfig = {
       outputFormat: "ico",
       trim: true,
@@ -163,6 +197,9 @@ describe("processImage", () => {
       outputColor: "#abcdef",
       removeBackground: { color: null, tolerance: 5 },
       normalizeOutline: { strokeWidth: 6 },
+      rotate: 180,
+      flipHorizontal: false,
+      flipVertical: true,
     };
 
     await processImage(INPUT, config);
@@ -173,7 +210,10 @@ describe("processImage", () => {
     expect(normalizeOutline).toHaveBeenCalledWith(removeBgOutput, 6);
     const normalizeOutput = await normalizeOutline.mock.results[0].value;
 
-    expect(trimImage).toHaveBeenCalledWith(normalizeOutput);
+    expect(transformImage).toHaveBeenCalledWith(normalizeOutput, 180, false, true);
+    const transformOutput = await transformImage.mock.results[0].value;
+
+    expect(trimImage).toHaveBeenCalledWith(transformOutput);
     const trimOutput = await trimImage.mock.results[0].value;
 
     expect(recolorImage).toHaveBeenCalledWith(trimOutput, "#abcdef");

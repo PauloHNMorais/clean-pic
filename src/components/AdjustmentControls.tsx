@@ -11,6 +11,8 @@ import {
   MIN_DIMENSION,
   MIN_STROKE_WIDTH,
   MIN_TOLERANCE,
+  ROTATE_ANGLES,
+  RotateAngle,
   getNormalizeOutlineError,
   getOutputColorError,
   getRemoveBackgroundError,
@@ -168,6 +170,49 @@ export default function AdjustmentControls({
         />
         Cortar espaços vazios
       </label>
+
+      <fieldset className="flex items-center gap-4">
+        <legend className="mb-1 w-full text-gray-500 text-xs">Girar</legend>
+        {ROTATE_ANGLES.map((angle) => (
+          <label key={angle} className="flex items-center gap-1">
+            <input
+              type="radio"
+              name={`${idPrefix}-rotate`}
+              checked={config.rotate === angle}
+              onChange={() =>
+                onChange({ ...config, rotate: angle as RotateAngle })
+              }
+              className="accent-primary"
+            />
+            {angle}°
+          </label>
+        ))}
+      </fieldset>
+
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="accent-primary"
+            checked={config.flipHorizontal}
+            onChange={(e) =>
+              onChange({ ...config, flipHorizontal: e.target.checked })
+            }
+          />
+          Espelhar horizontalmente
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="accent-primary"
+            checked={config.flipVertical}
+            onChange={(e) =>
+              onChange({ ...config, flipVertical: e.target.checked })
+            }
+          />
+          Espelhar verticalmente
+        </label>
+      </div>
 
       <label className="flex items-center gap-2">
         <input

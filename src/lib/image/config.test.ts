@@ -140,8 +140,26 @@ describe("isValidAdjustmentConfig", () => {
         outputColor: "#ff00ff",
         removeBackground: { color: "#ffffff", tolerance: 10 },
         normalizeOutline: { strokeWidth: 4 },
+        rotate: 90,
+        flipHorizontal: true,
+        flipVertical: true,
       })
     ).toBe(true);
+  });
+
+  it("rejects an invalid rotate angle", () => {
+    expect(
+      isValidAdjustmentConfig({ ...DEFAULT_CONFIG, rotate: 45 })
+    ).toBe(false);
+  });
+
+  it("rejects non-boolean flipHorizontal/flipVertical", () => {
+    expect(
+      isValidAdjustmentConfig({ ...DEFAULT_CONFIG, flipHorizontal: "yes" })
+    ).toBe(false);
+    expect(
+      isValidAdjustmentConfig({ ...DEFAULT_CONFIG, flipVertical: "yes" })
+    ).toBe(false);
   });
 
   it("rejects non-object values", () => {

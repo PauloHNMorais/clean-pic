@@ -5,6 +5,7 @@ import { convertToSvg } from "@/lib/image/svg";
 import { recolorImage } from "@/lib/image/recolor";
 import { removeBackground } from "@/lib/image/removeBackground";
 import { normalizeOutline } from "@/lib/image/normalizeOutline";
+import { transformImage } from "@/lib/image/transform";
 import { convertToIco } from "@/lib/image/ico";
 
 export interface ProcessedImage {
@@ -27,6 +28,15 @@ export async function processImage(
     working = await normalizeOutline(
       working,
       config.normalizeOutline.strokeWidth
+    );
+  }
+
+  if (config.rotate !== 0 || config.flipHorizontal || config.flipVertical) {
+    working = await transformImage(
+      working,
+      config.rotate,
+      config.flipHorizontal,
+      config.flipVertical
     );
   }
 
