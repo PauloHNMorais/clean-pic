@@ -63,7 +63,7 @@ npx tsc --noEmit  # checagem de tipos
 
 ## Limites atuais
 
-- 1 a 100 imagens por lote
+- 1 a 300 imagens por lote
 - Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF, SVG
 - 1 MB por arquivo, 4 MB no total do lote (compatível com o limite de corpo de requisição da Vercel gratuita)
 - Conversão para SVG assume ícones de cor única em estilo outline — não é indicada para fotos ou imagens com gradiente/múltiplas cores

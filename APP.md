@@ -21,7 +21,7 @@ CleanPic é uma ferramenta web pra ajustar imagens
 
 # Regras de Negócio
 
-- Deve deixar escolher entre 1 e 100 imagens
+- Deve deixar escolher entre 1 e 300 imagens
 - Formatos de entrada aceitos: JPEG, PNG, WebP, GIF, AVIF, SVG. TIFF não entra apesar de suportado no processamento porque o navegador não exibe preview dele. SVG é sanitizado e rasterizado (ver `svgInput.ts`) antes de entrar no pipeline de pixel bruto usado pelo resto do processamento
 - A conversão para SVG é voltada para ícones de cor única em estilo "outline" (contorno). Fotos, gradientes ou imagens com múltiplas cores não têm boa fidelidade nesse processo e ficam fora do escopo garantido — isso vale pra qualquer formato de entrada, não só PNG
 - Cada arquivo tem limite de 1 MB (proteção contra uso excessivo de memória/CPU no processamento)

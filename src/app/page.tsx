@@ -40,7 +40,7 @@ export default function Home() {
           <br />
 
           <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-            Faça upload de 1 a 100 imagens para ajustar e converter em PNG, SVG
+            Faça upload de 1 a 300 imagens para ajustar e converter em PNG, SVG
             ou ICO.
           </p>
         </div>

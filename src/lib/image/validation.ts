@@ -1,5 +1,5 @@
 export const MIN_IMAGES = 1;
-export const MAX_IMAGES = 100;
+export const MAX_IMAGES = 300;
 
 // Raster formats sharp can decode in this build, restricted to ones
 // browsers can also render natively in an <img> tag (needed for the
