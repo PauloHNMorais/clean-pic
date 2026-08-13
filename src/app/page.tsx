@@ -56,7 +56,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="hover:text-zinc-700 dark:hover:text-zinc-300 underline"
           >
-            Paulo Morais
+            PauloHNMorais
           </a>
         </p>
       </footer>

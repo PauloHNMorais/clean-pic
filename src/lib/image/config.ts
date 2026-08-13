@@ -1,6 +1,16 @@
+// "stretch" distorts the image to the exact width/height (aspect ratio
+// ignored, current pixel content resampled to fill the box).
+// "proportional" scales the whole image down/up preserving aspect ratio,
+// then pads with transparent space on the edges that don't fill the box.
+// "original" doesn't scale at all — the image's pixels stay at their
+// original size, centered in the box; anything that doesn't fit is
+// cropped, anything the image doesn't cover is padded transparent.
+export type ResizeMode = "stretch" | "proportional" | "original";
+
 export interface ResizeConfig {
   width: number;
   height: number;
+  mode: ResizeMode;
 }
 
 export interface RemoveBackgroundConfig {
@@ -26,7 +36,11 @@ export interface AdjustmentConfig {
   normalizeOutline: NormalizeOutlineConfig | null;
 }
 
-export const DEFAULT_RESIZE: ResizeConfig = { width: 256, height: 256 };
+export const DEFAULT_RESIZE: ResizeConfig = {
+  width: 256,
+  height: 256,
+  mode: "stretch",
+};
 export const DEFAULT_OUTPUT_COLOR = "#000000";
 export const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 export const DEFAULT_TOLERANCE = 20;
@@ -61,7 +75,10 @@ export function resolveConfig(
   return override ?? global;
 }
 
-export function getResizeError(resize: ResizeConfig): string | null {
+export function getResizeError(resize: {
+  width: number;
+  height: number;
+}): string | null {
   if (
     !Number.isInteger(resize.width) ||
     resize.width < MIN_DIMENSION ||
@@ -117,6 +134,13 @@ function isValidResizeShape(value: unknown): boolean {
   if (typeof value !== "object") return false;
   const resize = value as Record<string, unknown>;
   if (typeof resize.width !== "number" || typeof resize.height !== "number") {
+    return false;
+  }
+  if (
+    resize.mode !== "stretch" &&
+    resize.mode !== "proportional" &&
+    resize.mode !== "original"
+  ) {
     return false;
   }
   return getResizeError({ width: resize.width, height: resize.height }) === null;

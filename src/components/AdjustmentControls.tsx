@@ -281,6 +281,56 @@ export default function AdjustmentControls({
               {getResizeError(config.resize)}
             </p>
           )}
+          <fieldset className="flex flex-col gap-1">
+            <legend className="mb-1 w-full text-gray-500 text-xs">
+              Modo
+            </legend>
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name={`${idPrefix}-resize-mode`}
+                checked={config.resize.mode === "stretch"}
+                onChange={() =>
+                  onChange({
+                    ...config,
+                    resize: { ...config.resize!, mode: "stretch" },
+                  })
+                }
+                className="accent-primary"
+              />
+              Esticar imagem
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name={`${idPrefix}-resize-mode`}
+                checked={config.resize.mode === "proportional"}
+                onChange={() =>
+                  onChange({
+                    ...config,
+                    resize: { ...config.resize!, mode: "proportional" },
+                  })
+                }
+                className="accent-primary"
+              />
+              Manter proporção (espaço vazio nas bordas)
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name={`${idPrefix}-resize-mode`}
+                checked={config.resize.mode === "original"}
+                onChange={() =>
+                  onChange({
+                    ...config,
+                    resize: { ...config.resize!, mode: "original" },
+                  })
+                }
+                className="accent-primary"
+              />
+              Manter imagem original (corta ou preenche as bordas)
+            </label>
+          </fieldset>
           {config.outputFormat === "ico" &&
             (config.resize.width > 256 || config.resize.height > 256) && (
               <p className="text-gray-500 text-xs">

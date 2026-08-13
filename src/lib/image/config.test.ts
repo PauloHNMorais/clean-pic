@@ -136,7 +136,7 @@ describe("isValidAdjustmentConfig", () => {
       isValidAdjustmentConfig({
         outputFormat: "ico",
         trim: true,
-        resize: { width: 100, height: 100 },
+        resize: { width: 100, height: 100, mode: "proportional" },
         outputColor: "#ff00ff",
         removeBackground: { color: "#ffffff", tolerance: 10 },
         normalizeOutline: { strokeWidth: 4 },
@@ -172,11 +172,23 @@ describe("isValidAdjustmentConfig", () => {
     expect(
       isValidAdjustmentConfig({
         ...DEFAULT_CONFIG,
-        resize: { width: "100", height: 100 },
+        resize: { width: "100", height: 100, mode: "stretch" },
       })
     ).toBe(false);
     expect(
-      isValidAdjustmentConfig({ ...DEFAULT_CONFIG, resize: { width: 0, height: 100 } })
+      isValidAdjustmentConfig({
+        ...DEFAULT_CONFIG,
+        resize: { width: 0, height: 100, mode: "stretch" },
+      })
+    ).toBe(false);
+  });
+
+  it("rejects an invalid resize mode", () => {
+    expect(
+      isValidAdjustmentConfig({
+        ...DEFAULT_CONFIG,
+        resize: { width: 100, height: 100, mode: "squash" },
+      })
     ).toBe(false);
   });
 

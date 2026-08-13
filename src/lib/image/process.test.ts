@@ -112,7 +112,7 @@ describe("processImage", () => {
     const config: AdjustmentConfig = {
       ...DEFAULT_CONFIG,
       outputFormat: "svg",
-      resize: { width: 64, height: 64 },
+      resize: { width: 64, height: 64, mode: "proportional" },
       outputColor: "#00ff00",
     };
 
@@ -130,21 +130,21 @@ describe("processImage", () => {
     const config: AdjustmentConfig = {
       ...DEFAULT_CONFIG,
       outputColor: "#123456",
-      resize: { width: 32, height: 32 },
+      resize: { width: 32, height: 32, mode: "stretch" },
     };
 
     await processImage(INPUT, config);
 
     expect(recolorImage).toHaveBeenCalledWith(INPUT, "#123456");
     const recoloredBuffer = await recolorImage.mock.results[0].value;
-    expect(resizeImage).toHaveBeenCalledWith(recoloredBuffer, 32, 32);
+    expect(resizeImage).toHaveBeenCalledWith(recoloredBuffer, 32, 32, "stretch");
   });
 
   it("converts to ICO using the fully processed working buffer", async () => {
     const config: AdjustmentConfig = {
       ...DEFAULT_CONFIG,
       outputFormat: "ico",
-      resize: { width: 32, height: 32 },
+      resize: { width: 32, height: 32, mode: "original" },
     };
 
     const result = await processImage(INPUT, config);
@@ -159,7 +159,7 @@ describe("processImage", () => {
     const config: AdjustmentConfig = {
       outputFormat: "ico",
       trim: true,
-      resize: { width: 16, height: 16 },
+      resize: { width: 16, height: 16, mode: "stretch" },
       outputColor: "#abcdef",
       removeBackground: { color: null, tolerance: 5 },
       normalizeOutline: { strokeWidth: 6 },
@@ -179,7 +179,7 @@ describe("processImage", () => {
     expect(recolorImage).toHaveBeenCalledWith(trimOutput, "#abcdef");
     const recolorOutput = await recolorImage.mock.results[0].value;
 
-    expect(resizeImage).toHaveBeenCalledWith(recolorOutput, 16, 16);
+    expect(resizeImage).toHaveBeenCalledWith(recolorOutput, 16, 16, "stretch");
     const resizeOutput = await resizeImage.mock.results[0].value;
 
     expect(convertToIco).toHaveBeenCalledWith(resizeOutput);

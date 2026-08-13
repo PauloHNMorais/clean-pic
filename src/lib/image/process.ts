@@ -52,7 +52,12 @@ export async function processImage(
   }
 
   if (config.resize) {
-    working = await resizeImage(working, config.resize.width, config.resize.height);
+    working = await resizeImage(
+      working,
+      config.resize.width,
+      config.resize.height,
+      config.resize.mode
+    );
   }
 
   if (config.outputFormat === "ico") {

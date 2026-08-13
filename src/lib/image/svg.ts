@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { trace as potraceTrace, type PotraceOptions } from "potrace";
+import { ResizeMode } from "@/lib/image/config";
 
 const ALPHA_THRESHOLD = 128;
 
@@ -44,18 +45,28 @@ async function flattenByAlpha(input: Buffer): Promise<FlattenedBitmap> {
   return { bitmap, width, height, fillColor };
 }
 
-function setSvgDimensions(svg: string, width: number, height: number): string {
-  return svg.replace(/<svg([^>]*)>/, (_match, attrs: string) => {
-    const cleaned = attrs
-      .replace(/\s+width="[^"]*"/, "")
-      .replace(/\s+height="[^"]*"/, "");
-    return `<svg${cleaned} width="${width}" height="${height}">`;
+// Replaces (or adds) attributes on the root <svg> tag. A value of undefined
+// removes the attribute instead of setting it.
+function setSvgAttrs(
+  svg: string,
+  attrs: Record<string, string | undefined>
+): string {
+  return svg.replace(/<svg([^>]*)>/, (_match, existing: string) => {
+    let cleaned = existing;
+    for (const name of Object.keys(attrs)) {
+      cleaned = cleaned.replace(new RegExp(`\\s+${name}="[^"]*"`), "");
+    }
+    const additions = Object.entries(attrs)
+      .filter((entry): entry is [string, string] => entry[1] !== undefined)
+      .map(([name, value]) => ` ${name}="${value}"`)
+      .join("");
+    return `<svg${cleaned}${additions}>`;
   });
 }
 
 export async function convertToSvg(
   input: Buffer,
-  dimensions?: { width: number; height: number },
+  dimensions?: { width: number; height: number; mode: ResizeMode },
   colorOverride?: string
 ): Promise<string> {
   const { bitmap, width, height, fillColor } = await flattenByAlpha(input);
@@ -79,7 +90,40 @@ export async function convertToSvg(
     });
   });
 
-  return dimensions
-    ? setSvgDimensions(svg, dimensions.width, dimensions.height)
-    : svg;
+  if (!dimensions) return svg;
+
+  const { width: targetWidth, height: targetHeight, mode } = dimensions;
+
+  if (mode === "stretch") {
+    // Forces the disproportionate width/height to actually distort the
+    // content — without this, the SVG spec's default preserveAspectRatio
+    // ("xMidYMid meet") would letterbox instead of stretching.
+    return setSvgAttrs(svg, {
+      width: String(targetWidth),
+      height: String(targetHeight),
+      preserveAspectRatio: "none",
+    });
+  }
+
+  if (mode === "proportional") {
+    // Default preserveAspectRatio ("xMidYMid meet") already scales the
+    // content to fit inside the box preserving aspect ratio and centers
+    // it — exactly the padded-on-the-edges behavior this mode wants.
+    return setSvgAttrs(svg, {
+      width: String(targetWidth),
+      height: String(targetHeight),
+    });
+  }
+
+  // "original": keep native scale (1 viewBox unit = 1px) by shifting the
+  // viewBox to a same-size window centered on the original content —
+  // content outside it gets clipped (crop), space the content doesn't
+  // cover stays empty (pad), and nothing gets resampled.
+  const minX = (width - targetWidth) / 2;
+  const minY = (height - targetHeight) / 2;
+  return setSvgAttrs(svg, {
+    width: String(targetWidth),
+    height: String(targetHeight),
+    viewBox: `${minX} ${minY} ${targetWidth} ${targetHeight}`,
+  });
 }
