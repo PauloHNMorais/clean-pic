@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { type FileRejection, useDropzone } from "react-dropzone";
 import {
-  ACCEPTED_MIME_TYPES,
+  DROPZONE_ACCEPTED_TYPES,
   MAX_IMAGES,
   MAX_TOTAL_UPLOAD_BYTES,
+  MAX_ZIP_FILE_SIZE_BYTES,
   formatMaxTotalSize,
+  isZipFile,
   validateNewFiles,
 } from "@/lib/image/validation";
+import { extractImagesFromZip } from "@/lib/image/zipInput";
 import {
   AdjustmentConfig,
   DEFAULT_CONFIG,
@@ -52,13 +55,40 @@ export default function ImageUploader() {
   }, [images]);
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], dropzoneRejections: FileRejection[]) => {
+    async (acceptedFiles: File[], dropzoneRejections: FileRejection[]) => {
+      const newErrors: string[] = [];
+      const expandedFiles: File[] = [];
+
+      for (const file of acceptedFiles) {
+        if (!isZipFile(file)) {
+          expandedFiles.push(file);
+          continue;
+        }
+        if (file.size > MAX_ZIP_FILE_SIZE_BYTES) {
+          newErrors.push(
+            `${file.name}: arquivo zip muito grande (máx. ${MAX_ZIP_FILE_SIZE_BYTES / (1024 * 1024)} MB)`,
+          );
+          continue;
+        }
+        try {
+          const { files, skippedCount } = await extractImagesFromZip(file);
+          expandedFiles.push(...files);
+          if (skippedCount > 0) {
+            newErrors.push(
+              `${file.name}: ${skippedCount} arquivo(s) dentro do zip ignorado(s) (não são imagens suportadas)`,
+            );
+          }
+        } catch {
+          newErrors.push(`${file.name}: não foi possível ler o arquivo zip`);
+        }
+      }
+
       const currentTotalBytes = images.reduce(
         (sum, image) => sum + image.file.size,
         0,
       );
       const { accepted, rejected, limitExceededCount, totalSizeExceededCount } =
-        validateNewFiles(acceptedFiles, images.length, currentTotalBytes);
+        validateNewFiles(expandedFiles, images.length, currentTotalBytes);
 
       const newImages: UploadedImage[] = accepted.map((file) => ({
         id: `${file.name}-${file.size}-${crypto.randomUUID()}`,
@@ -67,7 +97,6 @@ export default function ImageUploader() {
         override: null,
       }));
 
-      const newErrors: string[] = [];
       for (const { file } of dropzoneRejections) {
         newErrors.push(`${file.name}: formato de imagem não suportado`);
       }
@@ -93,7 +122,7 @@ export default function ImageUploader() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ACCEPTED_MIME_TYPES,
+    accept: DROPZONE_ACCEPTED_TYPES,
     disabled: images.length >= MAX_IMAGES,
   });
 
@@ -235,7 +264,7 @@ export default function ImageUploader() {
             ? `Limite de ${MAX_IMAGES} imagens atingido`
             : isDragActive
               ? "Solte os arquivos aqui"
-              : "Arraste imagens aqui ou clique para selecionar (1 a 50, JPEG/PNG/WebP/GIF/AVIF/SVG)"}
+              : `Arraste imagens ou um .zip aqui ou clique para selecionar (1 a ${MAX_IMAGES}, JPEG/PNG/WebP/GIF/AVIF/SVG ou .zip)`}
         </p>
       </div>
 

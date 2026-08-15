@@ -3,7 +3,8 @@ import {
   MAX_FILE_SIZE_BYTES,
   MAX_IMAGES,
   MAX_TOTAL_UPLOAD_BYTES,
-  sanitizeFileName,
+  isZipFile,
+  sanitizeRelativePath,
   validateNewFiles,
 } from "@/lib/image/validation";
 
@@ -11,29 +12,58 @@ function makeFile(name: string, sizeBytes: number, type = "image/png"): File {
   return new File([new Uint8Array(sizeBytes)], name, { type });
 }
 
-describe("sanitizeFileName", () => {
+describe("sanitizeRelativePath", () => {
   it("leaves a normal filename untouched", () => {
-    expect(sanitizeFileName("logo.png")).toBe("logo.png");
+    expect(sanitizeRelativePath("logo.png")).toBe("logo.png");
   });
 
-  it("strips path traversal down to the last segment", () => {
-    expect(sanitizeFileName("../../../../etc/passwd")).toBe("passwd");
-  });
-
-  it("strips backslash-style path traversal too", () => {
-    expect(sanitizeFileName("..\\..\\windows\\system32\\config")).toBe(
-      "config"
+  it("keeps legitimate nested directory structure", () => {
+    expect(sanitizeRelativePath("icons/social/twitter.png")).toBe(
+      "icons/social/twitter.png",
     );
   });
 
-  it("falls back to a default name when nothing safe is left", () => {
-    expect(sanitizeFileName("..")).toBe("imagem");
-    expect(sanitizeFileName("")).toBe("imagem");
-    expect(sanitizeFileName("../")).toBe("imagem");
+  it("drops path traversal segments but keeps the rest", () => {
+    expect(sanitizeRelativePath("../../../../etc/passwd")).toBe(
+      "etc/passwd",
+    );
   });
 
-  it("strips leading dots from an otherwise normal name", () => {
-    expect(sanitizeFileName("...hidden.png")).toBe("hidden.png");
+  it("drops backslash-style path traversal segments too", () => {
+    expect(
+      sanitizeRelativePath("..\\..\\windows\\system32\\config"),
+    ).toBe("windows/system32/config");
+  });
+
+  it("falls back to a default name when nothing safe is left", () => {
+    expect(sanitizeRelativePath("..")).toBe("imagem");
+    expect(sanitizeRelativePath("")).toBe("imagem");
+    expect(sanitizeRelativePath("../")).toBe("imagem");
+    expect(sanitizeRelativePath("../..")).toBe("imagem");
+  });
+
+  it("strips leading dots from every segment", () => {
+    expect(sanitizeRelativePath(".hidden/...file.png")).toBe(
+      "hidden/file.png",
+    );
+  });
+});
+
+describe("isZipFile", () => {
+  it("recognizes standard zip MIME types", () => {
+    expect(
+      isZipFile(new File([], "a.zip", { type: "application/zip" })),
+    ).toBe(true);
+  });
+
+  it("falls back to the .zip extension when the MIME type is unreliable", () => {
+    expect(isZipFile(new File([], "a.zip", { type: "" }))).toBe(true);
+  });
+
+  it("rejects non-zip files", () => {
+    expect(
+      isZipFile(new File([], "a.png", { type: "image/png" })),
+    ).toBe(false);
   });
 });
 

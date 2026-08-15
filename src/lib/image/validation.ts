@@ -31,12 +31,67 @@ export const MAX_TOTAL_UPLOAD_BYTES = 4 * 1024 * 1024;
 // bypassing the browser's file picker) and gets used as a zip entry name in
 // route.ts — without stripping path segments, a name like "../../etc/foo"
 // would become a Zip Slip: an entry that, on extraction with a tool lacking
-// path-traversal protection, writes outside the target directory.
-export function sanitizeFileName(name: string): string {
-  const lastSegment = name.split(/[/\\]/).pop() ?? "";
-  const withoutLeadingDots = lastSegment.replace(/^\.+/, "");
-  return withoutLeadingDots || "imagem";
+// path-traversal protection, writes outside the target directory. Images
+// extracted from an imported .zip (see zipInput.ts) carry directory
+// structure worth keeping in the output, so instead of collapsing straight
+// to the basename, this sanitizes every path segment individually
+// (stripping "..", ".", empty segments, and leading dots), which neutralizes
+// traversal attempts while letting legitimate nested folders survive. For a
+// flat filename (no path separators) it reduces to just that one check.
+export function sanitizeRelativePath(path: string): string {
+  const segments = path
+    .split(/[/\\]/)
+    .map((segment) => segment.replace(/^\.+/, ""))
+    .filter((segment) => segment !== "");
+  return segments.length > 0 ? segments.join("/") : "imagem";
 }
+
+// Zip MIME reporting is inconsistent across browsers/OSes (application/zip,
+// application/x-zip-compressed, sometimes ""), so zip detection falls back
+// to the .zip extension rather than relying on file.type alone.
+const ZIP_MIME_TYPES = [
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/zip-compressed",
+];
+
+export function isZipFile(file: File): boolean {
+  return (
+    ZIP_MIME_TYPES.includes(file.type) ||
+    file.name.toLowerCase().endsWith(".zip")
+  );
+}
+
+// react-dropzone's `accept` map, extended with zip so it isn't rejected
+// before onDrop ever sees it (the zip itself never becomes an "image" —
+// ImageUploader expands it into the images it contains first).
+export const DROPZONE_ACCEPTED_TYPES: Record<string, string[]> = {
+  ...ACCEPTED_MIME_TYPES,
+  "application/zip": [".zip"],
+  "application/x-zip-compressed": [".zip"],
+};
+
+// A single compressed .zip upload, capped well above MAX_TOTAL_UPLOAD_BYTES.
+// Deflate's compression ratio is bounded (~1032:1 worst case), so this also
+// bounds how large a single crafted entry can decompress to in the browser
+// before the per-file/per-batch checks in validateNewFiles ever see it.
+export const MAX_ZIP_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+
+// Reverse of ACCEPTED_MIME_TYPES: extension (no leading dot, lowercase) ->
+// MIME type. Zip entries carry no browser-assigned MIME type, so extracted
+// images need this to become real File objects the rest of the pipeline
+// (validateNewFiles, the ACCEPTED_MIME_TYPES check in route.ts) recognizes.
+export const EXTENSION_TO_MIME_TYPE: Record<string, string> = Object.entries(
+  ACCEPTED_MIME_TYPES,
+).reduce(
+  (map, [mime, extensions]) => {
+    for (const ext of extensions) {
+      map[ext.replace(/^\./, "")] = mime;
+    }
+    return map;
+  },
+  {} as Record<string, string>,
+);
 
 // Best-effort abuse protection for /api/process, which is public and does
 // CPU-bound work (sharp/potrace) per request. Per-IP, in-memory — see

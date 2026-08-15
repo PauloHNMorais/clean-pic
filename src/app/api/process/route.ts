@@ -10,7 +10,7 @@ import {
   MAX_TOTAL_UPLOAD_BYTES,
   MIN_IMAGES,
   formatMaxTotalSize,
-  sanitizeFileName,
+  sanitizeRelativePath,
 } from "@/lib/image/validation";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 
@@ -159,7 +159,7 @@ export async function POST(request: Request): Promise<Response> {
       }
       const processed = await processImage(inputBuffer, config);
       const name = uniqueName(
-        stripExtension(sanitizeFileName(file.name)),
+        stripExtension(sanitizeRelativePath(file.name)),
         processed.extension,
         usedNames,
       );

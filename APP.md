@@ -4,7 +4,7 @@ CleanPic é uma ferramenta web pra ajustar imagens
 
 # Requisitos Funcionais
 
-- O usuário faz upload de imagens em qualquer formato suportado (JPEG, PNG, WebP, GIF, AVIF, SVG)
+- O usuário faz upload de imagens em qualquer formato suportado (JPEG, PNG, WebP, GIF, AVIF, SVG), soltas ou dentro de um `.zip` (entra recursivamente em subpastas e pega todas as imagens suportadas)
 - A ferramenta dá as seguintes opções marcáveis (com opção pra ajuste individual ou global):
   - Escolher o formato de saída: PNG, SVG ou ICO
   - Cortar espaços vazios em volta da imagem
@@ -12,7 +12,7 @@ CleanPic é uma ferramenta web pra ajustar imagens
   - Girar (0°, 90°, 180° ou 270°) e espelhar (horizontal e/ou vertical)
   - Alterar a cor de saída (aplica em PNG e em SVG; mantém o modelo de cor única já usado hoje, apenas troca a cor pela escolhida em vez de manter a original)
   - Remover fundo (por cor + tolerância — não é segmentação por IA, é indicado pra fundo sólido/quase sólido tipo still de produto, não recorta bem foto com fundo complexo). Detecta a cor de fundo automaticamente por padrão (a partir dos cantos da própria imagem), mas permite escolher a cor manualmente
-- O usuário faz download dos arquivos ajustados em formato zip
+- O usuário faz download dos arquivos ajustados em formato zip, mantendo a mesma estrutura de pastas e nomes de quando a entrada veio de um `.zip`
 
 # Requisitos Não Funcionais
 
